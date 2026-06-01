@@ -199,9 +199,53 @@
       </table>
     </div>
 
+    <!-- ===== GitHub に保存 ===== -->
+    <div class="panel">
+      <h2>GitHub に保存（直接コミット）</h2>
+      <p class="hint">「保存」を押すと、現在の内容で <code>data.js</code> を GitHub に直接コミットします。
+        トークン（PAT）はリポジトリに保存されず、この画面でのみ使用します。
+        <strong>Contents の読み書き権限</strong>を持つ
+        <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener">fine-grained PAT</a>
+        の利用を推奨します。</p>
+
+      <div class="grid2">
+        <div class="field">
+          <label for="gh-repo">リポジトリ（owner/repo）</label>
+          <input id="gh-repo" placeholder="owner/repo" />
+        </div>
+        <div class="field">
+          <label for="gh-branch">ブランチ</label>
+          <input id="gh-branch" placeholder="main" />
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="gh-path">ファイルパス</label>
+          <input id="gh-path" placeholder="data.js" />
+        </div>
+        <div class="field">
+          <label for="gh-msg">コミットメッセージ</label>
+          <input id="gh-msg" placeholder="Update data.js via admin" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="gh-token">アクセストークン（PAT）</label>
+        <input id="gh-token" type="password" placeholder="github_pat_... / ghp_..." autocomplete="off" />
+      </div>
+      <div class="btn-row">
+        <button type="button" class="btn btn-primary" id="gh-save">GitHub に保存</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted)">
+          <input type="checkbox" id="gh-remember" style="width:auto" />
+          設定とトークンをこの端末に保存（共有PCでは非推奨）
+        </label>
+        <span class="msg" id="gh-msg-out"></span>
+      </div>
+      <p class="hint" id="gh-result" style="margin-top:8px"></p>
+    </div>
+
     <!-- ===== 書き出し ===== -->
     <div class="panel">
-      <h2>data.js を書き出す</h2>
+      <h2>data.js を書き出す（手動）</h2>
       <p class="hint">下のボタンで現在の内容から <code>data.js</code> を生成します。コピー、またはダウンロードしてリポジトリの <code>data.js</code> を差し替えてください。</p>
       <div class="btn-row" style="margin-bottom: 14px;">
         <button type="button" class="btn btn-accent" id="genBtn">data.js を生成</button>
@@ -540,11 +584,132 @@ if (typeof window !== "undefined") {
       showMsg($("exportMsg"), "ダウンロードしました。", true);
     });
 
+    // ===== GitHub に保存（Contents API で直接コミット）=====
+    const GH_CFG_KEY = "dhp-gh-config";
+    const GH_TOKEN_KEY = "dhp-gh-token";
+
+    // UTF-8 文字列を base64 に（日本語対応）
+    function utf8ToBase64(str) {
+      const bytes = new TextEncoder().encode(str);
+      let bin = "";
+      bytes.forEach((b) => { bin += String.fromCharCode(b); });
+      return btoa(bin);
+    }
+
+    function ghParseRepo(v) {
+      const m = String(v || "").trim().replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "");
+      const parts = m.split("/").filter(Boolean);
+      return parts.length >= 2 ? { owner: parts[0], repo: parts[1] } : null;
+    }
+
+    function loadGhConfig() {
+      let cfg = {};
+      try { cfg = JSON.parse(localStorage.getItem(GH_CFG_KEY) || "{}"); } catch (e) {}
+      $("gh-repo").value   = cfg.repo   || "dhpyenomoto/dhphome";
+      $("gh-branch").value = cfg.branch || "main";
+      $("gh-path").value   = cfg.path   || "data.js";
+      $("gh-msg").value    = cfg.msg    || "Update data.js via admin";
+      const tok = sessionStorage.getItem(GH_TOKEN_KEY) || localStorage.getItem(GH_TOKEN_KEY) || "";
+      $("gh-token").value = tok;
+      $("gh-remember").checked = !!localStorage.getItem(GH_TOKEN_KEY) || !!cfg.remember;
+    }
+
+    function persistGhConfig() {
+      const remember = $("gh-remember").checked;
+      const cfg = {
+        repo: $("gh-repo").value.trim(),
+        branch: $("gh-branch").value.trim(),
+        path: $("gh-path").value.trim(),
+        msg: $("gh-msg").value.trim(),
+        remember
+      };
+      // 非機微の設定は常に保存（リポジトリ/ブランチ/パス）
+      localStorage.setItem(GH_CFG_KEY, JSON.stringify(cfg));
+      // トークンは remember 時のみ localStorage、それ以外は sessionStorage（タブを閉じると消える）
+      const tok = $("gh-token").value.trim();
+      if (remember) {
+        localStorage.setItem(GH_TOKEN_KEY, tok);
+        sessionStorage.removeItem(GH_TOKEN_KEY);
+      } else {
+        localStorage.removeItem(GH_TOKEN_KEY);
+        if (tok) sessionStorage.setItem(GH_TOKEN_KEY, tok); else sessionStorage.removeItem(GH_TOKEN_KEY);
+      }
+    }
+
+    async function githubSave() {
+      const repoInfo = ghParseRepo($("gh-repo").value);
+      const branch = $("gh-branch").value.trim() || "main";
+      const path = $("gh-path").value.trim() || "data.js";
+      const token = $("gh-token").value.trim();
+      const message = $("gh-msg").value.trim() || "Update data.js via admin";
+      const resultEl = $("gh-result");
+      resultEl.textContent = "";
+
+      if (!repoInfo) { showMsg($("gh-msg-out"), "リポジトリは owner/repo 形式で入力してください。", false); return; }
+      if (!token)    { showMsg($("gh-msg-out"), "アクセストークン（PAT）を入力してください。", false); return; }
+
+      persistGhConfig();
+      const content = buildDataJs();
+      $("output").value = content;
+
+      const apiBase = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}`;
+      const headers = {
+        "Authorization": "Bearer " + token,
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      };
+
+      const btn = $("gh-save");
+      btn.disabled = true;
+      showMsg($("gh-msg-out"), "保存中…", true);
+      try {
+        // 1) 既存ファイルの SHA を取得（無ければ新規作成）
+        let sha = null;
+        const getRes = await fetch(`${apiBase}?ref=${encodeURIComponent(branch)}`, { headers });
+        if (getRes.status === 200) {
+          sha = (await getRes.json()).sha;
+        } else if (getRes.status !== 404) {
+          throw new Error(`SHA取得に失敗（${getRes.status}）: ${(await getRes.json()).message || ""}`);
+        }
+
+        // 2) PUT でコミット
+        const putRes = await fetch(apiBase, {
+          method: "PUT",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message,
+            content: utf8ToBase64(content),
+            branch,
+            ...(sha ? { sha } : {})
+          })
+        });
+        const putJson = await putRes.json();
+        if (!putRes.ok) {
+          throw new Error(`保存に失敗（${putRes.status}）: ${putJson.message || ""}`);
+        }
+        showMsg($("gh-msg-out"), "保存しました。", true);
+        const commit = putJson.commit || {};
+        const url = (commit.html_url) || (putJson.content && putJson.content.html_url) || "";
+        resultEl.innerHTML = url
+          ? `コミット完了: <a href="${url}" target="_blank" rel="noopener">${(commit.sha || "").slice(0, 7) || "コミットを表示"}</a>`
+          : "コミットが完了しました。";
+      } catch (err) {
+        showMsg($("gh-msg-out"), "エラー", false);
+        resultEl.innerHTML = `<span style="color:var(--danger)">${String(err.message || err)}</span>`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    $("gh-save").addEventListener("click", githubSave);
+    $("gh-remember").addEventListener("change", persistGhConfig);
+
     // ===== 初期化 =====
     fillCategorySelect();
     renderRows();
     renderGallery();
     renderDocs();
+    loadGhConfig();
   </script>
 </body>
 </html>

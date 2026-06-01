@@ -79,6 +79,24 @@ const SITE_DATA = {
 - 上記の追加フィールド（`landArea` / `plan` / `story` / `gallery` / `documents`）は
   **省略せず常に出力**します（admin の書き出しは未入力でも空値で必ず含めます）。
 
+## 管理画面からの保存方法（`admin.html`）
+
+データの更新は2通りで反映できます。
+
+1. **GitHub に直接保存（推奨・既定）**
+   - 「GitHub に保存」パネルで リポジトリ（`owner/repo`）・ブランチ・パス（`data.js`）・
+     コミットメッセージ・**アクセストークン（PAT）** を入力し「GitHub に保存」。
+   - GitHub Contents API（`GET`→`PUT /repos/{owner}/{repo}/contents/{path}`）で
+     `data.js` を直接コミットします。保存直前に最新 SHA を取得して上書きします。
+   - **PAT はリポジトリに保存しません。** 既定はメモリ/`sessionStorage`（タブを閉じると消去）。
+     「この端末に保存」を選んだ場合のみ `localStorage` に保存します（共有PCでは非推奨）。
+   - 推奨トークン: 当該リポジトリに限定した **fine-grained PAT（Contents: Read and write）**。
+2. **手動で書き出し（フォールバック）**
+   - 「data.js を書き出す」でコピー/ダウンロードし、リポジトリの `data.js` を差し替えてコミット。
+
+> いずれの場合も、`admin.html` が生成する `data.js` は
+> `index.html` / `project.html` がそのまま読める形式を厳守します。
+
 ## 多言語表示（i18n）の方針
 
 - 現在の言語は JavaScript の変数 `currentLang`（`"ja"` または `"en"`）で管理します。
