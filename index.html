@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dhp都市開発 | dhp Urban Development</title>
+  <meta name="description" content="dhp都市開発の投資家・ディベロッパー向け案件情報。/ Project portfolio of dhp Urban Development for investors and developers." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-mark">dhp<span>都市開発</span></span>
+        <span class="brand-sub">dhp Urban Development</span>
+      </div>
+      <div class="header-actions">
+        <a class="admin-link" href="admin.html" data-i18n="adminLink">管理画面</a>
+        <div class="lang-toggle" role="group" aria-label="Language">
+          <button type="button" data-lang="ja">日本語</button>
+          <button type="button" data-lang="en">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-inner">
+      <h1 data-i18n="heroTitle"></h1>
+      <p data-i18n="heroLead"></p>
+    </div>
+  </section>
+
+  <section class="controls">
+    <p class="controls-title" data-i18n="filterLabel"></p>
+    <div class="filters" id="filters"></div>
+  </section>
+
+  <main class="projects" id="projects"></main>
+
+  <footer class="site-footer">
+    <p>&copy; <span id="year"></span> dhp都市開発 / dhp Urban Development. <span data-i18n="rights"></span></p>
+  </footer>
+
+  <script src="data.js"></script>
+  <script>
+    // ===== i18n 辞書（固定文言）=====
+    const UI_TEXT = {
+      heroTitle: { ja: "都市の未来をデザインする",
+                   en: "Designing the Future of Cities" },
+      heroLead:  { ja: "dhp都市開発は、住宅・商業・ホテル・再開発・土地活用にわたる開発案件を、投資家とディベロッパーの皆様にご紹介します。",
+                   en: "dhp Urban Development presents development projects across residential, commercial, hotel, redevelopment and land for investors and developers." },
+      filterLabel: { ja: "カテゴリーで絞り込む", en: "Filter by category" },
+      allCategory: { ja: "すべて", en: "All" },
+      adminLink:   { ja: "管理画面", en: "Admin" },
+      rights:      { ja: "All rights reserved.", en: "All rights reserved." },
+      noResults:   { ja: "該当する案件がありません。", en: "No matching projects." },
+      labelYear:   { ja: "年", en: "Year" },
+      labelArea:   { ja: "規模", en: "Area" },
+      labelStatus: { ja: "状況", en: "Status" }
+    };
+
+    const PLACEHOLDER_IMG =
+      "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400">' +
+        '<rect width="100%" height="100%" fill="#d8dde6"/>' +
+        '<text x="50%" y="50%" fill="#8a93a3" font-family="sans-serif" font-size="22" ' +
+        'text-anchor="middle" dominant-baseline="middle">dhp Urban Development</text></svg>'
+      );
+
+    // ===== 状態 =====
+    let currentLang = localStorage.getItem("dhp-lang") || "ja";
+    let activeCategory = "all";
+
+    const t = (key) => (UI_TEXT[key] ? UI_TEXT[key][currentLang] : key);
+    const catLabel = (cat) => cat[currentLang] || cat.ja;
+    const catById = (id) => SITE_DATA.categories.find((c) => c.id === id);
+
+    // ===== 固定文言の流し込み =====
+    function applyStaticText() {
+      document.documentElement.lang = currentLang;
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        el.textContent = t(el.getAttribute("data-i18n"));
+      });
+      document.querySelectorAll(".lang-toggle button").forEach((b) => {
+        b.classList.toggle("active", b.getAttribute("data-lang") === currentLang);
+      });
+    }
+
+    // ===== カテゴリーフィルターの描画 =====
+    function renderFilters() {
+      const wrap = document.getElementById("filters");
+      wrap.innerHTML = "";
+      const make = (id, label) => {
+        const btn = document.createElement("button");
+        btn.className = "filter-btn" + (activeCategory === id ? " active" : "");
+        btn.textContent = label;
+        btn.addEventListener("click", () => {
+          activeCategory = id;
+          renderFilters();
+          renderProjects();
+        });
+        return btn;
+      };
+      wrap.appendChild(make("all", t("allCategory")));
+      SITE_DATA.categories.forEach((cat) => wrap.appendChild(make(cat.id, catLabel(cat))));
+    }
+
+    // ===== 案件カードの描画 =====
+    function renderProjects() {
+      const grid = document.getElementById("projects");
+      grid.innerHTML = "";
+      const list = SITE_DATA.projects.filter(
+        (p) => activeCategory === "all" || p.category === activeCategory
+      );
+
+      if (list.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "empty";
+        empty.textContent = t("noResults");
+        grid.appendChild(empty);
+        return;
+      }
+
+      list.forEach((p) => {
+        const cat = catById(p.category);
+        const card = document.createElement("article");
+        card.className = "card";
+
+        const metaParts = [];
+        if (p.year) {
+          metaParts.push(
+            `<span><span class="label">${t("labelYear")}:</span> <span class="value">${p.year}</span></span>`
+          );
+        }
+        if (p.area) {
+          metaParts.push(
+            `<span><span class="label">${t("labelArea")}:</span> <span class="value">${p.area}</span></span>`
+          );
+        }
+
+        card.innerHTML = `
+          <div class="card-media">
+            <img src="${p.image || PLACEHOLDER_IMG}" alt="${p.name[currentLang] || ""}"
+                 loading="lazy"
+                 onerror="this.onerror=null;this.src='${PLACEHOLDER_IMG}';" />
+            ${cat ? `<span class="card-cat">${catLabel(cat)}</span>` : ""}
+          </div>
+          <div class="card-body">
+            <h3 class="card-name">${p.name[currentLang] || ""}</h3>
+            <p class="card-location">${p.location[currentLang] || ""}</p>
+            <p class="card-summary">${p.summary[currentLang] || ""}</p>
+            ${p.status && p.status[currentLang]
+              ? `<p><span class="card-status">${t("labelStatus")}: ${p.status[currentLang]}</span></p>`
+              : ""}
+            ${p.investment && p.investment[currentLang]
+              ? `<p class="card-investment">${p.investment[currentLang]}</p>`
+              : ""}
+            ${metaParts.length ? `<div class="card-meta">${metaParts.join("")}</div>` : ""}
+          </div>`;
+        grid.appendChild(card);
+      });
+    }
+
+    function setLang(lang) {
+      currentLang = lang;
+      localStorage.setItem("dhp-lang", lang);
+      applyStaticText();
+      renderFilters();
+      renderProjects();
+    }
+
+    // ===== 初期化 =====
+    document.querySelectorAll(".lang-toggle button").forEach((b) => {
+      b.addEventListener("click", () => setLang(b.getAttribute("data-lang")));
+    });
+    document.getElementById("year").textContent = new Date().getFullYear();
+    setLang(currentLang);
+  </script>
+</body>
+</html>

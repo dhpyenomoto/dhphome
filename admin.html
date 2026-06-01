@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>管理画面 | dhp都市開発</title>
+  <style>
+    :root {
+      --navy: #0f2a4a; --accent: #c8a45c; --bg: #f5f6f8; --border: #d8dde6;
+      --text: #1c2430; --muted: #6b7686; --danger: #c0392b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: "Hiragino Sans", "Noto Sans JP", "Segoe UI", system-ui, sans-serif;
+      line-height: 1.6;
+    }
+    header {
+      background: var(--navy); color: #fff; padding: 16px 24px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    header .brand { font-weight: 700; font-size: 1.2rem; }
+    header .brand span { color: var(--accent); }
+    header a { color: #cdd6e4; font-size: 0.85rem; text-decoration: none;
+      border: 1px solid rgba(255,255,255,.25); padding: 6px 12px; border-radius: 999px; }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 24px; }
+    .panel {
+      background: #fff; border: 1px solid var(--border); border-radius: 12px;
+      padding: 22px 24px; margin-bottom: 24px; box-shadow: 0 6px 20px rgba(15,42,74,.06);
+    }
+    h2 { margin: 0 0 4px; font-size: 1.15rem; }
+    .hint { color: var(--muted); font-size: 0.85rem; margin: 0 0 18px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+    .field label { font-size: 0.82rem; font-weight: 600; color: var(--muted); }
+    input, select, textarea {
+      font: inherit; padding: 9px 11px; border: 1px solid var(--border);
+      border-radius: 8px; background: #fff; color: var(--text); width: 100%;
+    }
+    textarea { resize: vertical; min-height: 60px; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+    .btn {
+      border: none; border-radius: 8px; padding: 10px 18px; font: inherit;
+      font-weight: 600; cursor: pointer;
+    }
+    .btn-primary { background: var(--navy); color: #fff; }
+    .btn-accent { background: var(--accent); color: var(--navy); }
+    .btn-ghost { background: #eef1f5; color: var(--text); }
+    .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 5px 10px; font-size: 0.8rem; }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
+    .legend { font-size: 0.78rem; color: var(--muted); margin: 18px 0 6px; letter-spacing: .05em; text-transform: uppercase; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: .04em; }
+    .pill { background: #eef3fa; color: var(--navy); border-radius: 999px; padding: 2px 9px; font-size: 0.78rem; }
+    textarea#output { width: 100%; min-height: 260px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.82rem; }
+    .msg { font-size: 0.85rem; margin-left: 4px; }
+    .msg.ok { color: #1e7e34; }
+    .msg.err { color: var(--danger); }
+    .editing { background: #fffbe9; }
+    @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">dhp<span>都市開発</span> 管理画面</span>
+    <a href="index.html">← 公開ページ</a>
+  </header>
+
+  <div class="wrap">
+    <!-- ===== 案件フォーム ===== -->
+    <div class="panel" id="formPanel">
+      <h2 id="formTitle">案件を追加</h2>
+      <p class="hint">バイリンガル項目は日本語・英語の両方を入力してください（CLAUDE.md のデータ構造に準拠）。</p>
+
+      <form id="projectForm">
+        <input type="hidden" id="editId" />
+        <div class="grid2">
+          <div class="field">
+            <label for="f-id">ID（一意・英数字） *</label>
+            <input id="f-id" required placeholder="例: p007" />
+          </div>
+          <div class="field">
+            <label for="f-category">カテゴリー *</label>
+            <select id="f-category" required></select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="f-image">画像URL / パス（実写真。空ならプレースホルダー）</label>
+          <input id="f-image" placeholder="https://... または images/foo.jpg" />
+        </div>
+
+        <p class="legend">名称 / Name</p>
+        <div class="grid2">
+          <div class="field"><label for="f-name-ja">日本語 *</label><input id="f-name-ja" required /></div>
+          <div class="field"><label for="f-name-en">English *</label><input id="f-name-en" required /></div>
+        </div>
+
+        <p class="legend">所在地 / Location</p>
+        <div class="grid2">
+          <div class="field"><label for="f-location-ja">日本語</label><input id="f-location-ja" /></div>
+          <div class="field"><label for="f-location-en">English</label><input id="f-location-en" /></div>
+        </div>
+
+        <p class="legend">概要 / Summary</p>
+        <div class="grid2">
+          <div class="field"><label for="f-summary-ja">日本語</label><textarea id="f-summary-ja"></textarea></div>
+          <div class="field"><label for="f-summary-en">English</label><textarea id="f-summary-en"></textarea></div>
+        </div>
+
+        <p class="legend">ステータス / Status</p>
+        <div class="grid2">
+          <div class="field"><label for="f-status-ja">日本語</label><input id="f-status-ja" placeholder="例: 開発中" /></div>
+          <div class="field"><label for="f-status-en">English</label><input id="f-status-en" placeholder="e.g. Under development" /></div>
+        </div>
+
+        <p class="legend">投資ハイライト / Investment highlight</p>
+        <div class="grid2">
+          <div class="field"><label for="f-investment-ja">日本語</label><input id="f-investment-ja" /></div>
+          <div class="field"><label for="f-investment-en">English</label><input id="f-investment-en" /></div>
+        </div>
+
+        <div class="grid2">
+          <div class="field"><label for="f-year">年（数値・任意）</label><input id="f-year" type="number" placeholder="例: 2026" /></div>
+          <div class="field"><label for="f-area">規模（任意）</label><input id="f-area" placeholder="例: 12,000 m²" /></div>
+        </div>
+
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary" id="submitBtn">案件を追加</button>
+          <button type="button" class="btn btn-ghost" id="resetBtn">クリア</button>
+          <span class="msg" id="formMsg"></span>
+        </div>
+      </form>
+    </div>
+
+    <!-- ===== 一覧 ===== -->
+    <div class="panel">
+      <h2>登録済みの案件（<span id="count">0</span>件）</h2>
+      <p class="hint">編集・削除した結果は下の「data.js を書き出す」で反映されます。</p>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>カテゴリー</th><th>名称(JA / EN)</th><th>操作</th></tr>
+        </thead>
+        <tbody id="projectRows"></tbody>
+      </table>
+    </div>
+
+    <!-- ===== 書き出し ===== -->
+    <div class="panel">
+      <h2>data.js を書き出す</h2>
+      <p class="hint">下のボタンで現在の内容から <code>data.js</code> を生成します。コピー、またはダウンロードしてリポジトリの <code>data.js</code> を差し替えてください。</p>
+      <div class="btn-row" style="margin-bottom: 14px;">
+        <button type="button" class="btn btn-accent" id="genBtn">data.js を生成</button>
+        <button type="button" class="btn btn-ghost" id="copyBtn">クリップボードにコピー</button>
+        <button type="button" class="btn btn-ghost" id="downloadBtn">data.js をダウンロード</button>
+        <span class="msg" id="exportMsg"></span>
+      </div>
+      <textarea id="output" readonly placeholder="ここに生成された data.js が表示されます"></textarea>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script>
+    // SITE_DATA を編集用にディープコピー（元データは破壊しない）
+    const state = {
+      categories: JSON.parse(JSON.stringify(SITE_DATA.categories)),
+      projects: JSON.parse(JSON.stringify(SITE_DATA.projects))
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const catName = (id) => {
+      const c = state.categories.find((x) => x.id === id);
+      return c ? c.ja + " / " + c.en : id;
+    };
+
+    function showMsg(el, text, ok) {
+      el.textContent = text;
+      el.className = "msg " + (ok ? "ok" : "err");
+      if (text) setTimeout(() => { el.textContent = ""; el.className = "msg"; }, 4000);
+    }
+
+    // ===== カテゴリー選択肢 =====
+    function fillCategorySelect() {
+      const sel = $("f-category");
+      sel.innerHTML = "";
+      state.categories.forEach((c) => {
+        const o = document.createElement("option");
+        o.value = c.id;
+        o.textContent = c.ja + " / " + c.en;
+        sel.appendChild(o);
+      });
+    }
+
+    // ===== 一覧描画 =====
+    function renderRows() {
+      const tbody = $("projectRows");
+      tbody.innerHTML = "";
+      $("count").textContent = state.projects.length;
+      state.projects.forEach((p) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${p.id}</td>
+          <td><span class="pill">${catName(p.category)}</span></td>
+          <td>${p.name.ja || ""}<br><span style="color:#6b7686">${p.name.en || ""}</span></td>
+          <td>
+            <div class="btn-row" style="margin:0">
+              <button type="button" class="btn btn-ghost" data-edit="${p.id}" style="padding:5px 10px;font-size:.8rem">編集</button>
+              <button type="button" class="btn btn-danger" data-del="${p.id}">削除</button>
+            </div>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+      tbody.querySelectorAll("[data-edit]").forEach((b) =>
+        b.addEventListener("click", () => editProject(b.getAttribute("data-edit"))));
+      tbody.querySelectorAll("[data-del]").forEach((b) =>
+        b.addEventListener("click", () => deleteProject(b.getAttribute("data-del"))));
+    }
+
+    // ===== フォーム読み書き =====
+    function readForm() {
+      const yearVal = $("f-year").value.trim();
+      return {
+        id: $("f-id").value.trim(),
+        category: $("f-category").value,
+        image: $("f-image").value.trim(),
+        name:       { ja: $("f-name-ja").value.trim(),       en: $("f-name-en").value.trim() },
+        location:   { ja: $("f-location-ja").value.trim(),   en: $("f-location-en").value.trim() },
+        summary:    { ja: $("f-summary-ja").value.trim(),    en: $("f-summary-en").value.trim() },
+        status:     { ja: $("f-status-ja").value.trim(),     en: $("f-status-en").value.trim() },
+        investment: { ja: $("f-investment-ja").value.trim(), en: $("f-investment-en").value.trim() },
+        year: yearVal === "" ? null : Number(yearVal),
+        area: $("f-area").value.trim()
+      };
+    }
+
+    function fillForm(p) {
+      $("editId").value = p.id;
+      $("f-id").value = p.id;
+      $("f-category").value = p.category;
+      $("f-image").value = p.image || "";
+      $("f-name-ja").value = p.name.ja || "";       $("f-name-en").value = p.name.en || "";
+      $("f-location-ja").value = p.location.ja || ""; $("f-location-en").value = p.location.en || "";
+      $("f-summary-ja").value = p.summary.ja || "";   $("f-summary-en").value = p.summary.en || "";
+      $("f-status-ja").value = p.status.ja || "";     $("f-status-en").value = p.status.en || "";
+      $("f-investment-ja").value = p.investment.ja || ""; $("f-investment-en").value = p.investment.en || "";
+      $("f-year").value = p.year == null ? "" : p.year;
+      $("f-area").value = p.area || "";
+    }
+
+    function resetForm() {
+      $("projectForm").reset();
+      $("editId").value = "";
+      $("formTitle").textContent = "案件を追加";
+      $("submitBtn").textContent = "案件を追加";
+      $("formPanel").classList.remove("editing");
+      $("f-id").disabled = false;
+    }
+
+    function editProject(id) {
+      const p = state.projects.find((x) => x.id === id);
+      if (!p) return;
+      fillForm(p);
+      $("formTitle").textContent = "案件を編集: " + id;
+      $("submitBtn").textContent = "変更を保存";
+      $("formPanel").classList.add("editing");
+      $("f-id").disabled = true; // 編集中はID変更不可
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function deleteProject(id) {
+      if (!confirm("案件「" + id + "」を削除します。よろしいですか？")) return;
+      state.projects = state.projects.filter((x) => x.id !== id);
+      if ($("editId").value === id) resetForm();
+      renderRows();
+    }
+
+    // ===== 追加 / 更新 =====
+    $("projectForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const editing = $("editId").value;
+      const data = editing ? { ...readForm(), id: editing } : readForm();
+
+      if (!data.id || !data.category || !data.name.ja || !data.name.en) {
+        showMsg($("formMsg"), "ID・カテゴリー・名称(JA/EN)は必須です。", false);
+        return;
+      }
+      if (!editing && state.projects.some((p) => p.id === data.id)) {
+        showMsg($("formMsg"), "そのIDは既に使われています。", false);
+        return;
+      }
+
+      if (editing) {
+        const i = state.projects.findIndex((p) => p.id === editing);
+        state.projects[i] = data;
+        showMsg($("formMsg"), "更新しました。", true);
+      } else {
+        state.projects.push(data);
+        showMsg($("formMsg"), "追加しました。", true);
+      }
+      renderRows();
+      resetForm();
+    });
+    $("resetBtn").addEventListener("click", resetForm);
+
+    // ===== data.js 生成 =====
+    function jsStr(s) { return JSON.stringify(s == null ? "" : s); }
+    function biln(o) {
+      return `{ ja: ${jsStr(o && o.ja)}, en: ${jsStr(o && o.en)} }`;
+    }
+
+    function buildDataJs() {
+      const cats = state.categories.map((c) =>
+        `    { id: ${jsStr(c.id)}, ja: ${jsStr(c.ja)}, en: ${jsStr(c.en)} }`
+      ).join(",\n");
+
+      const projs = state.projects.map((p) => {
+        return [
+          "    {",
+          `      id: ${jsStr(p.id)},`,
+          `      category: ${jsStr(p.category)},`,
+          `      image: ${jsStr(p.image)},`,
+          `      name: ${biln(p.name)},`,
+          `      location: ${biln(p.location)},`,
+          `      summary: ${biln(p.summary)},`,
+          `      status: ${biln(p.status)},`,
+          `      year: ${p.year == null ? "null" : Number(p.year)},`,
+          `      area: ${jsStr(p.area)},`,
+          `      investment: ${biln(p.investment)}`,
+          "    }"
+        ].join("\n");
+      }).join(",\n");
+
+      return `/*
+ * data.js — dhp都市開発 案件データ（唯一の情報源 / single source of truth）
+ *
+ * このファイルは admin.html から書き出して差し替えできます。
+ * 手で編集する場合も CLAUDE.md のデータ構造を厳守してください。
+ */
+const SITE_DATA = {
+  categories: [
+${cats}
+  ],
+  projects: [
+${projs}
+  ]
+};
+
+// ブラウザ・admin の双方から参照できるように公開する
+if (typeof window !== "undefined") {
+  window.SITE_DATA = SITE_DATA;
+}
+`;
+    }
+
+    $("genBtn").addEventListener("click", () => {
+      $("output").value = buildDataJs();
+      showMsg($("exportMsg"), "生成しました。", true);
+    });
+
+    $("copyBtn").addEventListener("click", async () => {
+      if (!$("output").value) $("output").value = buildDataJs();
+      try {
+        await navigator.clipboard.writeText($("output").value);
+        showMsg($("exportMsg"), "コピーしました。", true);
+      } catch (e) {
+        $("output").select();
+        showMsg($("exportMsg"), "自動コピー不可。手動で選択してコピーしてください。", false);
+      }
+    });
+
+    $("downloadBtn").addEventListener("click", () => {
+      const content = $("output").value || buildDataJs();
+      const blob = new Blob([content], { type: "text/javascript" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "data.js";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showMsg($("exportMsg"), "ダウンロードしました。", true);
+    });
+
+    // ===== 初期化 =====
+    fillCategorySelect();
+    renderRows();
+  </script>
+</body>
+</html>
