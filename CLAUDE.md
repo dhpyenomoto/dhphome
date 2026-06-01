@@ -26,13 +26,14 @@
 ```js
 const SITE_DATA = {
   categories: [
-    { id: "residential", ja: "住宅",   en: "Residential" },
+    { id: "ongoing",   ja: "進行中", en: "In progress" },  // 案件は進行状況で分類
+    { id: "completed", ja: "完了",   en: "Completed" },
     // ...
   ],
   projects: [
     {
       id: "p001",                       // 一意なID（文字列）。"p" + 連番を推奨
-      category: "residential",          // categories[].id のいずれか
+      category: "ongoing",              // categories[].id のいずれか
       image: "https://.../photo.jpg",   // 実写真のURLまたは相対パス（images/foo.jpg）
       name:     { ja: "案件名",     en: "Project name" },
       location: { ja: "所在地",     en: "Location" },
