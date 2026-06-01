@@ -57,7 +57,8 @@
       noResults:   { ja: "該当する案件がありません。", en: "No matching projects." },
       labelYear:   { ja: "年", en: "Year" },
       labelArea:   { ja: "規模", en: "Area" },
-      labelStatus: { ja: "状況", en: "Status" }
+      labelStatus: { ja: "状況", en: "Status" },
+      viewDetail:  { ja: "詳細を見る", en: "View details" }
     };
 
     const PLACEHOLDER_IMG =
@@ -124,8 +125,9 @@
 
       list.forEach((p) => {
         const cat = catById(p.category);
-        const card = document.createElement("article");
+        const card = document.createElement("a");
         card.className = "card";
+        card.href = "project.html?id=" + encodeURIComponent(p.id);
 
         const metaParts = [];
         if (p.year) {
@@ -157,6 +159,7 @@
               ? `<p class="card-investment">${p.investment[currentLang]}</p>`
               : ""}
             ${metaParts.length ? `<div class="card-meta">${metaParts.join("")}</div>` : ""}
+            <span class="card-more">${t("viewDetail")} →</span>
           </div>`;
         grid.appendChild(card);
       });

@@ -58,6 +58,18 @@
     .msg.ok { color: #1e7e34; }
     .msg.err { color: var(--danger); }
     .editing { background: #fffbe9; }
+    .repeat-block { border: 1px dashed var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+    .repeat-item {
+      display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+      background: #f7f9fc; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px;
+    }
+    .repeat-item .ri-main { flex: 1; min-width: 0; }
+    .repeat-item .ri-title { font-weight: 600; font-size: 0.9rem; }
+    .repeat-item .ri-sub { color: var(--muted); font-size: 0.8rem; word-break: break-all; }
+    .repeat-item img { width: 54px; height: 40px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+    .repeat-item .ri-up, .repeat-item .ri-down {
+      background: #eef1f5; border: none; border-radius: 6px; cursor: pointer; padding: 4px 9px; font-size: .85rem;
+    }
     @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -123,7 +135,48 @@
 
         <div class="grid2">
           <div class="field"><label for="f-year">年（数値・任意）</label><input id="f-year" type="number" placeholder="例: 2026" /></div>
-          <div class="field"><label for="f-area">規模（任意）</label><input id="f-area" placeholder="例: 12,000 m²" /></div>
+          <div class="field"><label for="f-area">客室・規模（任意）</label><input id="f-area" placeholder="例: 108室 / 108 rooms" /></div>
+        </div>
+
+        <div class="field">
+          <label for="f-landArea">土地規模（任意）</label>
+          <input id="f-landArea" placeholder="例: 約32,000坪（約105,800㎡）" />
+        </div>
+
+        <p class="legend">計画概要 / Plan overview</p>
+        <div class="grid2">
+          <div class="field"><label for="f-plan-ja">日本語</label><textarea id="f-plan-ja"></textarea></div>
+          <div class="field"><label for="f-plan-en">English</label><textarea id="f-plan-en"></textarea></div>
+        </div>
+
+        <p class="legend">プロジェクトストーリー / Project story</p>
+        <div class="grid2">
+          <div class="field"><label for="f-story-ja">日本語</label><textarea id="f-story-ja" style="min-height:90px"></textarea></div>
+          <div class="field"><label for="f-story-en">English</label><textarea id="f-story-en" style="min-height:90px"></textarea></div>
+        </div>
+
+        <p class="legend">写真 / Photos（URL または images/foo.jpg）</p>
+        <div class="repeat-block">
+          <div id="galleryList"></div>
+          <div class="btn-row" style="margin-top:8px">
+            <input id="g-input" placeholder="https://... または images/foo.jpg" style="flex:1;min-width:240px" />
+            <button type="button" class="btn btn-ghost" id="g-add">＋ 写真を追加</button>
+          </div>
+          <p class="hint" style="margin:6px 0 0">先頭の写真は一覧カードのサムネイルにも使われます。</p>
+        </div>
+
+        <p class="legend">資料（ダウンロード）/ Documents</p>
+        <div class="repeat-block">
+          <div id="docList"></div>
+          <div class="grid2" style="margin-top:8px">
+            <div class="field" style="margin:0"><label for="d-ja">表示名（日本語）</label><input id="d-ja" placeholder="例: 事業計画書" /></div>
+            <div class="field" style="margin:0"><label for="d-en">Title (English)</label><input id="d-en" placeholder="e.g. Business plan" /></div>
+          </div>
+          <div class="btn-row" style="margin-top:8px">
+            <input id="d-file" placeholder="downloads/foo.pdf または https://..." style="flex:1;min-width:240px" />
+            <button type="button" class="btn btn-ghost" id="d-add">＋ 資料を追加</button>
+          </div>
+          <p class="hint" style="margin:6px 0 0">ファイルは <code>downloads/</code> に置く（またはコミット）か、外部URLを指定してください。詳しくは <code>downloads/README.md</code>。</p>
         </div>
 
         <div class="btn-row">
@@ -180,6 +233,77 @@
       if (text) setTimeout(() => { el.textContent = ""; el.className = "msg"; }, 4000);
     }
 
+    // ===== 写真・資料の編集用バッファ =====
+    let formGallery = [];   // [ "url", ... ]
+    let formDocuments = []; // [ { ja, en, file }, ... ]
+
+    function escAttr(s) {
+      return String(s == null ? "" : s).replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function moveItem(arr, i, dir) {
+      const j = i + dir;
+      if (j < 0 || j >= arr.length) return;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+
+    function renderGallery() {
+      const box = $("galleryList");
+      box.innerHTML = "";
+      formGallery.forEach((src, i) => {
+        const row = document.createElement("div");
+        row.className = "repeat-item";
+        row.innerHTML = `
+          <img src="${escAttr(src)}" alt="" onerror="this.style.visibility='hidden'">
+          <div class="ri-main"><div class="ri-sub">${escAttr(src)}</div></div>
+          <button type="button" class="ri-up"   data-mv="${i}" data-dir="-1">↑</button>
+          <button type="button" class="ri-down" data-mv="${i}" data-dir="1">↓</button>
+          <button type="button" class="btn btn-danger" data-rm="${i}">削除</button>`;
+        box.appendChild(row);
+      });
+      box.querySelectorAll("[data-rm]").forEach((b) =>
+        b.addEventListener("click", () => { formGallery.splice(+b.dataset.rm, 1); renderGallery(); }));
+      box.querySelectorAll("[data-mv]").forEach((b) =>
+        b.addEventListener("click", () => { moveItem(formGallery, +b.dataset.mv, +b.dataset.dir); renderGallery(); }));
+    }
+
+    function renderDocs() {
+      const box = $("docList");
+      box.innerHTML = "";
+      formDocuments.forEach((d, i) => {
+        const row = document.createElement("div");
+        row.className = "repeat-item";
+        row.innerHTML = `
+          <div class="ri-main">
+            <div class="ri-title">${escAttr(d.ja || d.en || "(無題)")}${d.en ? " / " + escAttr(d.en) : ""}</div>
+            <div class="ri-sub">${escAttr(d.file)}</div>
+          </div>
+          <button type="button" class="ri-up"   data-mv="${i}" data-dir="-1">↑</button>
+          <button type="button" class="ri-down" data-mv="${i}" data-dir="1">↓</button>
+          <button type="button" class="btn btn-danger" data-rm="${i}">削除</button>`;
+        box.appendChild(row);
+      });
+      box.querySelectorAll("[data-rm]").forEach((b) =>
+        b.addEventListener("click", () => { formDocuments.splice(+b.dataset.rm, 1); renderDocs(); }));
+      box.querySelectorAll("[data-mv]").forEach((b) =>
+        b.addEventListener("click", () => { moveItem(formDocuments, +b.dataset.mv, +b.dataset.dir); renderDocs(); }));
+    }
+
+    $("g-add").addEventListener("click", () => {
+      const v = $("g-input").value.trim();
+      if (!v) return;
+      formGallery.push(v);
+      $("g-input").value = "";
+      renderGallery();
+    });
+    $("d-add").addEventListener("click", () => {
+      const file = $("d-file").value.trim();
+      if (!file) { showMsg($("formMsg"), "資料のファイル/URLを入力してください。", false); return; }
+      formDocuments.push({ ja: $("d-ja").value.trim(), en: $("d-en").value.trim(), file });
+      $("d-ja").value = ""; $("d-en").value = ""; $("d-file").value = "";
+      renderDocs();
+    });
+
     // ===== カテゴリー選択肢 =====
     function fillCategorySelect() {
       const sel = $("f-category");
@@ -230,7 +354,12 @@
         status:     { ja: $("f-status-ja").value.trim(),     en: $("f-status-en").value.trim() },
         investment: { ja: $("f-investment-ja").value.trim(), en: $("f-investment-en").value.trim() },
         year: yearVal === "" ? null : Number(yearVal),
-        area: $("f-area").value.trim()
+        area: $("f-area").value.trim(),
+        landArea: $("f-landArea").value.trim(),
+        plan:  { ja: $("f-plan-ja").value.trim(),  en: $("f-plan-en").value.trim() },
+        story: { ja: $("f-story-ja").value.trim(), en: $("f-story-en").value.trim() },
+        gallery: formGallery.slice(),
+        documents: formDocuments.map((d) => ({ ja: d.ja || "", en: d.en || "", file: d.file || "" }))
       };
     }
 
@@ -246,6 +375,14 @@
       $("f-investment-ja").value = p.investment.ja || ""; $("f-investment-en").value = p.investment.en || "";
       $("f-year").value = p.year == null ? "" : p.year;
       $("f-area").value = p.area || "";
+      $("f-landArea").value = p.landArea || "";
+      $("f-plan-ja").value = (p.plan && p.plan.ja) || "";   $("f-plan-en").value = (p.plan && p.plan.en) || "";
+      $("f-story-ja").value = (p.story && p.story.ja) || ""; $("f-story-en").value = (p.story && p.story.en) || "";
+      formGallery = Array.isArray(p.gallery) ? p.gallery.slice() : [];
+      formDocuments = Array.isArray(p.documents)
+        ? p.documents.map((d) => ({ ja: d.ja || "", en: d.en || "", file: d.file || "" })) : [];
+      renderGallery();
+      renderDocs();
     }
 
     function resetForm() {
@@ -255,6 +392,10 @@
       $("submitBtn").textContent = "案件を追加";
       $("formPanel").classList.remove("editing");
       $("f-id").disabled = false;
+      formGallery = [];
+      formDocuments = [];
+      renderGallery();
+      renderDocs();
     }
 
     function editProject(id) {
@@ -308,6 +449,16 @@
     function biln(o) {
       return `{ ja: ${jsStr(o && o.ja)}, en: ${jsStr(o && o.en)} }`;
     }
+    function arrStr(a, ind) {
+      if (!a || !a.length) return "[]";
+      return "[\n" + a.map((s) => ind + "  " + jsStr(s)).join(",\n") + "\n" + ind + "]";
+    }
+    function docsStr(a, ind) {
+      if (!a || !a.length) return "[]";
+      return "[\n" + a.map((d) =>
+        ind + "  { ja: " + jsStr(d.ja) + ", en: " + jsStr(d.en) + ", file: " + jsStr(d.file) + " }"
+      ).join(",\n") + "\n" + ind + "]";
+    }
 
     function buildDataJs() {
       const cats = state.categories.map((c) =>
@@ -326,14 +477,23 @@
           `      status: ${biln(p.status)},`,
           `      year: ${p.year == null ? "null" : Number(p.year)},`,
           `      area: ${jsStr(p.area)},`,
-          `      investment: ${biln(p.investment)}`,
+          `      investment: ${biln(p.investment)},`,
+          `      landArea: ${jsStr(p.landArea)},`,
+          `      plan: ${biln(p.plan)},`,
+          `      story: ${biln(p.story)},`,
+          `      gallery: ${arrStr(p.gallery, "      ")},`,
+          `      documents: ${docsStr(p.documents, "      ")}`,
           "    }"
         ].join("\n");
       }).join(",\n");
 
       return `/*
- * data.js — dhp都市開発 案件データ（唯一の情報源 / single source of truth）
+ * data.js — dhp都市開発 GP ホテル・リゾート関連 案件データ
+ *（唯一の情報源 / single source of truth）
  *
+ * カテゴリーは進行状況（進行中 / 完了）で分類。
+ * 各案件は詳細ページ（project.html?id=...）で landArea / plan / story /
+ * gallery（写真） / documents（資料）まで表示します。
  * このファイルは admin.html から書き出して差し替えできます。
  * 手で編集する場合も CLAUDE.md のデータ構造を厳守してください。
  */
@@ -383,6 +543,8 @@ if (typeof window !== "undefined") {
     // ===== 初期化 =====
     fillCategorySelect();
     renderRows();
+    renderGallery();
+    renderDocs();
   </script>
 </body>
 </html>
