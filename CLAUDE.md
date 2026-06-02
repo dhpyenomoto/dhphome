@@ -36,7 +36,7 @@ const SITE_DATA = {
   ],
   projects: [
     {
-      id: "p001",                       // 一意なID（文字列）。"p" + 連番を推奨
+      id: "dhp0001",                    // 一意なID（文字列）。"dhp" + 4桁連番を推奨（古い案件ほど小さい番号）
       category: "ongoing",              // categories[].id のいずれか
       image: "https://.../photo.jpg",   // 実写真のURLまたは相対パス（images/foo.jpg）
       name:     { ja: "案件名",     en: "Project name" },

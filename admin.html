@@ -107,7 +107,7 @@
         <div class="grid2">
           <div class="field">
             <label for="f-id">ID（一意・英数字） *</label>
-            <input id="f-id" required placeholder="例: p007" />
+            <input id="f-id" required placeholder="例: dhp0053" />
           </div>
           <div class="field">
             <label for="f-category">カテゴリー *</label>
@@ -590,6 +590,16 @@
       renderDocs();
     }
 
+    // 次のプロジェクトNo.（dhp + 4桁連番）を提案
+    function suggestNextId() {
+      let max = 0;
+      state.projects.forEach((p) => {
+        const m = /^dhp(\d+)$/i.exec(p.id || "");
+        if (m) max = Math.max(max, parseInt(m[1], 10));
+      });
+      return "dhp" + String(max + 1).padStart(4, "0");
+    }
+
     function resetForm() {
       $("projectForm").reset();
       $("editId").value = "";
@@ -597,6 +607,7 @@
       $("submitBtn").textContent = "案件を追加";
       $("formPanel").classList.remove("editing");
       $("f-id").disabled = false;
+      $("f-id").value = suggestNextId(); // 新規追加時は次番号を自動入力（変更可）
       formGallery = [];
       formDocuments = [];
       renderGallery();
@@ -868,8 +879,7 @@ if (typeof window !== "undefined") {
     // ===== 初期化 =====
     fillCategorySelect();
     renderRows();
-    renderGallery();
-    renderDocs();
+    resetForm();        // 新規追加フォームに次のNo.（dhp連番）を自動表示
     loadGhConfig();
   </script>
 </body>

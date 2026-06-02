@@ -44,6 +44,7 @@
       secGallery:   { ja: "写真", en: "Photos" },
       secDocs:      { ja: "資料ダウンロード", en: "Documents" },
       labelStatus:  { ja: "進行状況", en: "Status" },
+      labelNo:      { ja: "プロジェクトNo.", en: "Project No." },
       labelCategory:{ ja: "区分", en: "Category" },
       labelYear:    { ja: "年", en: "Year" },
       labelArea:    { ja: "客室・規模", en: "Rooms / scale" },
@@ -111,6 +112,7 @@
 
       // メタ情報
       const metaHtml = [
+        metaRow(t("labelNo"), esc((p.id || "").toUpperCase())),
         metaRow(t("labelCategory"), cat ? esc(cat[currentLang] || cat.ja) : ""),
         metaRow(t("labelStatus"), has(p.status) ? esc(p.status[currentLang]) : ""),
         metaRow(t("labelLandArea"), p.landArea ? esc(p.landArea) : ""),
