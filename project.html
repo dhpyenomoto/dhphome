@@ -7,16 +7,16 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="site-header">
+  <header class="site-header" id="siteHeader">
     <div class="header-inner">
-      <a class="brand" href="index.html" style="text-decoration:none;color:inherit">
+      <a class="brand" href="index.html">
         <span class="brand-mark">dhp<span>都市開発</span></span>
         <span class="brand-sub">dhp Urban Development</span>
       </a>
       <div class="header-actions">
         <a class="admin-link" href="index.html" data-i18n="backToList">← 一覧へ</a>
         <div class="lang-toggle" role="group" aria-label="Language">
-          <button type="button" data-lang="ja">日本語</button>
+          <button type="button" data-lang="ja">JA</button>
           <button type="button" data-lang="en">EN</button>
         </div>
       </div>
@@ -26,7 +26,10 @@
   <main id="detail" class="detail"></main>
 
   <footer class="site-footer">
-    <p>&copy; <span id="year"></span> dhp都市開発 / dhp Urban Development. <span data-i18n="rights"></span></p>
+    <div class="footer-inner">
+      <span class="brand-mark footer-mark">dhp<span>都市開発</span></span>
+      <p>&copy; <span id="year"></span> dhp都市開発 / dhp Urban Development. <span data-i18n="rights"></span></p>
+    </div>
   </footer>
 
   <script src="data.js"></script>
@@ -54,9 +57,9 @@
     const PLACEHOLDER_IMG =
       "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(
         '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400">' +
-        '<rect width="100%" height="100%" fill="#d8dde6"/>' +
-        '<text x="50%" y="50%" fill="#8a93a3" font-family="sans-serif" font-size="22" ' +
-        'text-anchor="middle" dominant-baseline="middle">dhp Urban Development</text></svg>'
+        '<rect width="100%" height="100%" fill="#10131a"/>' +
+        '<text x="50%" y="50%" fill="#59616d" font-family="sans-serif" font-size="20" ' +
+        'letter-spacing="2" text-anchor="middle" dominant-baseline="middle">dhp Urban Development</text></svg>'
       );
 
     let currentLang = localStorage.getItem("dhp-lang") || "ja";
@@ -94,8 +97,9 @@
 
       if (!p) {
         root.innerHTML =
-          `<div class="detail-inner"><p class="empty">${t("notFound")}</p>
-           <p><a class="btn-link" href="index.html">${t("backToList")}</a></p></div>`;
+          `<div class="detail-inner" style="padding-top:160px;padding-bottom:120px">
+             <p class="empty">${t("notFound")}</p>
+             <p><a class="btn-link" href="index.html">${t("backToList")}</a></p></div>`;
         document.title = t("notFound") + " | dhp都市開発";
         return;
       }
@@ -122,7 +126,7 @@
         ? `<p class="detail-lead">${esc(p.summary[currentLang])}</p>` : "";
 
       const detailsSection =
-        `<section class="detail-section">
+        `<section class="detail-section reveal">
            <h2>${t("secDetails")}</h2>
            <div class="detail-grid">
              <div class="detail-main">
@@ -135,7 +139,7 @@
 
       // ストーリー
       const storySection = has(p.story)
-        ? `<section class="detail-section">
+        ? `<section class="detail-section reveal">
              <h2>${t("secStory")}</h2>
              <p class="detail-text">${esc(p.story[currentLang]).replace(/\n/g, "<br>")}</p>
            </section>` : "";
@@ -143,7 +147,7 @@
       // 写真ギャラリー
       const gallery = (p.gallery || []).filter(Boolean);
       const gallerySection = gallery.length
-        ? `<section class="detail-section">
+        ? `<section class="detail-section reveal">
              <h2>${t("secGallery")}</h2>
              <div class="gallery">
                ${gallery.map((src) =>
@@ -157,7 +161,7 @@
       // 資料ダウンロード
       const docs = (p.documents || []).filter((d) => d && d.file);
       const docsSection =
-        `<section class="detail-section">
+        `<section class="detail-section reveal">
            <h2>${t("secDocs")}</h2>
            ${docs.length
              ? `<ul class="doc-list">${docs.map((d) => {
@@ -177,18 +181,18 @@
             <div class="detail-inner">
               ${cat ? `<span class="hero-cat">${esc(cat[currentLang] || cat.ja)}</span>` : ""}
               <h1>${esc(name)}</h1>
-              <p class="hero-location">📍 ${esc((p.location && p.location[currentLang]) || "")}</p>
+              <p class="hero-location">${esc((p.location && p.location[currentLang]) || "")}</p>
             </div>
           </div>
         </div>
-        <div class="detail-inner">
-          <p><a class="btn-link" href="index.html">${t("backToList")}</a></p>
-          ${detailsSection}
-          ${storySection}
-          ${gallerySection}
-          ${docsSection}
-          <p style="margin-top:32px"><a class="btn-link" href="index.html">${t("backToList")}</a></p>
-        </div>`;
+        <div class="detail-inner"><p><a class="btn-link" href="index.html">${t("backToList")}</a></p></div>
+        ${detailsSection}
+        ${storySection}
+        ${gallerySection}
+        ${docsSection}
+        <div class="detail-inner" style="padding-bottom:90px"><a class="btn-link" href="index.html">${t("backToList")}</a></div>`;
+
+      observeReveals();
     }
 
     function setLang(lang) {
@@ -197,9 +201,34 @@
       render();
     }
 
+    // ===== スクロール演出 =====
+    let revealObserver = null;
+    function observeReveals() {
+      if (!("IntersectionObserver" in window)) {
+        document.querySelectorAll(".reveal").forEach((el) => el.classList.add("in"));
+        return;
+      }
+      if (!revealObserver) {
+        revealObserver = new IntersectionObserver((entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) { e.target.classList.add("in"); revealObserver.unobserve(e.target); }
+          });
+        }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
+      }
+      document.querySelectorAll(".reveal:not(.in)").forEach((el) => revealObserver.observe(el));
+    }
+    function initScrollHeader() {
+      const header = document.getElementById("siteHeader");
+      const onScroll = () => header.classList.toggle("scrolled", window.scrollY > 40);
+      onScroll();
+      window.addEventListener("scroll", onScroll, { passive: true });
+    }
+
+    document.documentElement.classList.add("has-js");
     document.querySelectorAll(".lang-toggle button").forEach((b) =>
       b.addEventListener("click", () => setLang(b.getAttribute("data-lang"))));
     document.getElementById("year").textContent = new Date().getFullYear();
+    initScrollHeader();
     setLang(currentLang);
   </script>
 </body>

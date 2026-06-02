@@ -8,16 +8,16 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="site-header">
+  <header class="site-header" id="siteHeader">
     <div class="header-inner">
-      <div class="brand">
+      <a class="brand" href="index.html">
         <span class="brand-mark">dhp<span>都市開発</span></span>
         <span class="brand-sub">dhp Urban Development</span>
-      </div>
+      </a>
       <div class="header-actions">
         <a class="admin-link" href="admin.html" data-i18n="adminLink">管理画面</a>
         <div class="lang-toggle" role="group" aria-label="Language">
-          <button type="button" data-lang="ja">日本語</button>
+          <button type="button" data-lang="ja">JA</button>
           <button type="button" data-lang="en">EN</button>
         </div>
       </div>
@@ -25,32 +25,46 @@
   </header>
 
   <section class="hero">
+    <div class="hero-bg" aria-hidden="true"></div>
     <div class="hero-inner">
+      <p class="eyebrow" data-i18n="heroEyebrow"></p>
       <h1 data-i18n="heroTitle"></h1>
-      <p data-i18n="heroLead"></p>
+      <p class="hero-lead" data-i18n="heroLead"></p>
+      <div class="hero-stats" id="heroStats"></div>
     </div>
+    <a class="scroll-cue" href="#portfolio" aria-label="scroll">
+      <span class="scroll-cue-line"></span>
+    </a>
   </section>
 
-  <section class="controls">
-    <p class="controls-title" data-i18n="filterLabel"></p>
+  <section class="controls" id="portfolio">
+    <div class="section-head reveal">
+      <p class="eyebrow" data-i18n="filterLabel"></p>
+      <h2 class="section-title" data-i18n="portfolioTitle"></h2>
+    </div>
     <div class="filters" id="filters"></div>
   </section>
 
   <main class="projects" id="projects"></main>
 
   <footer class="site-footer">
-    <p>&copy; <span id="year"></span> dhp都市開発 / dhp Urban Development. <span data-i18n="rights"></span></p>
+    <div class="footer-inner">
+      <span class="brand-mark footer-mark">dhp<span>都市開発</span></span>
+      <p>&copy; <span id="year"></span> dhp都市開発 / dhp Urban Development. <span data-i18n="rights"></span></p>
+    </div>
   </footer>
 
   <script src="data.js"></script>
   <script>
     // ===== i18n 辞書（固定文言）=====
     const UI_TEXT = {
-      heroTitle: { ja: "ホテル・リゾート開発のポートフォリオ",
-                   en: "Hotel & Resort Development Portfolio" },
-      heroLead:  { ja: "dhp都市開発 GP のホテル・リゾート関連 企画・進行中案件および完了実績のご紹介です（2026年3月末現在）。投資家・ディベロッパーの皆様に向けて、進行状況ごとに整理しています。",
-                   en: "Hotel and resort projects of dhp Urban Development GP — both ongoing pipeline and completed track record (as of end of March 2026), organized by stage for investors and developers." },
-      filterLabel: { ja: "カテゴリーで絞り込む", en: "Filter by category" },
+      heroEyebrow: { ja: "ホテル・リゾート ディベロップメント", en: "Hotel & Resort Development" },
+      heroTitle: { ja: "都市と自然に、\n次代のランドマークを。",
+                   en: "Crafting the next\nlandmarks of place." },
+      heroLead:  { ja: "dhp都市開発 GP のホテル・リゾート関連 企画・進行中案件および完了実績（2026年3月末現在）。投資家・ディベロッパーの皆様へ、進行状況ごとに整理してご紹介します。",
+                   en: "Hotel and resort projects of dhp Urban Development GP — ongoing pipeline and completed track record (as of end of March 2026), organized by stage for investors and developers." },
+      portfolioTitle: { ja: "プロジェクト ポートフォリオ", en: "Project Portfolio" },
+      filterLabel: { ja: "Selected Works", en: "Selected Works" },
       allCategory: { ja: "すべて", en: "All" },
       adminLink:   { ja: "管理画面", en: "Admin" },
       rights:      { ja: "All rights reserved.", en: "All rights reserved." },
@@ -58,7 +72,10 @@
       labelYear:   { ja: "年", en: "Year" },
       labelArea:   { ja: "規模", en: "Area" },
       labelStatus: { ja: "状況", en: "Status" },
-      viewDetail:  { ja: "詳細を見る", en: "View details" }
+      viewDetail:  { ja: "詳細を見る", en: "View details" },
+      statProjects:  { ja: "プロジェクト", en: "Projects" },
+      statOngoing:   { ja: "進行中", en: "In progress" },
+      statCompleted: { ja: "完了実績", en: "Completed" }
     };
 
     const PLACEHOLDER_IMG =
@@ -81,11 +98,32 @@
     function applyStaticText() {
       document.documentElement.lang = currentLang;
       document.querySelectorAll("[data-i18n]").forEach((el) => {
-        el.textContent = t(el.getAttribute("data-i18n"));
+        const val = t(el.getAttribute("data-i18n"));
+        if (typeof val !== "string") { return; }
+        if (val.indexOf("\n") >= 0) {
+          el.innerHTML = val.split("\n").map((s) =>
+            s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+          ).join("<br>");
+        } else {
+          el.textContent = val;
+        }
       });
       document.querySelectorAll(".lang-toggle button").forEach((b) => {
         b.classList.toggle("active", b.getAttribute("data-lang") === currentLang);
       });
+      renderStats();
+    }
+
+    // ===== ヒーローの数値（ポートフォリオ規模）=====
+    function renderStats() {
+      const box = document.getElementById("heroStats");
+      if (!box) return;
+      const total = SITE_DATA.projects.length;
+      const ongoing = SITE_DATA.projects.filter((p) => p.category === "ongoing").length;
+      const completed = SITE_DATA.projects.filter((p) => p.category === "completed").length;
+      const stat = (n, key) =>
+        `<div class="stat"><span class="stat-num">${n}</span><span class="stat-label">${t(key)}</span></div>`;
+      box.innerHTML = stat(total, "statProjects") + stat(ongoing, "statOngoing") + stat(completed, "statCompleted");
     }
 
     // ===== カテゴリーフィルターの描画 =====
@@ -123,46 +161,37 @@
         return;
       }
 
-      list.forEach((p) => {
+      list.forEach((p, i) => {
         const cat = catById(p.category);
         const card = document.createElement("a");
-        card.className = "card";
+        card.className = "card reveal";
+        card.style.transitionDelay = (i % 3) * 70 + "ms";
         card.href = "project.html?id=" + encodeURIComponent(p.id);
 
-        const metaParts = [];
-        if (p.year) {
-          metaParts.push(
-            `<span><span class="label">${t("labelYear")}:</span> <span class="value">${p.year}</span></span>`
-          );
-        }
-        if (p.area) {
-          metaParts.push(
-            `<span><span class="label">${t("labelArea")}:</span> <span class="value">${p.area}</span></span>`
-          );
-        }
-
+        const idx = String(i + 1).padStart(2, "0");
         card.innerHTML = `
           <div class="card-media">
             <img src="${p.image || PLACEHOLDER_IMG}" alt="${p.name[currentLang] || ""}"
                  loading="lazy"
                  onerror="this.onerror=null;this.src='${PLACEHOLDER_IMG}';" />
+            <span class="card-index">${idx}</span>
             ${cat ? `<span class="card-cat">${catLabel(cat)}</span>` : ""}
           </div>
           <div class="card-body">
-            <h3 class="card-name">${p.name[currentLang] || ""}</h3>
             <p class="card-location">${p.location[currentLang] || ""}</p>
+            <h3 class="card-name">${p.name[currentLang] || ""}</h3>
             <p class="card-summary">${p.summary[currentLang] || ""}</p>
-            ${p.status && p.status[currentLang]
-              ? `<p><span class="card-status">${t("labelStatus")}: ${p.status[currentLang]}</span></p>`
-              : ""}
-            ${p.investment && p.investment[currentLang]
-              ? `<p class="card-investment">${p.investment[currentLang]}</p>`
-              : ""}
-            ${metaParts.length ? `<div class="card-meta">${metaParts.join("")}</div>` : ""}
-            <span class="card-more">${t("viewDetail")} →</span>
+            <div class="card-foot">
+              <div class="card-tags">
+                ${p.status && p.status[currentLang] ? `<span class="card-status">${p.status[currentLang]}</span>` : ""}
+                ${p.investment && p.investment[currentLang] ? `<span class="card-invest">${p.investment[currentLang]}</span>` : ""}
+              </div>
+              <span class="card-more">${t("viewDetail")} <span class="arr">→</span></span>
+            </div>
           </div>`;
         grid.appendChild(card);
       });
+      observeReveals();
     }
 
     function setLang(lang) {
@@ -173,12 +202,39 @@
       renderProjects();
     }
 
+    // ===== スクロール演出（ヘッダー・要素のフェードイン）=====
+    let revealObserver = null;
+    function observeReveals() {
+      if (!("IntersectionObserver" in window)) {
+        document.querySelectorAll(".reveal").forEach((el) => el.classList.add("in"));
+        return;
+      }
+      if (!revealObserver) {
+        revealObserver = new IntersectionObserver((entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) { e.target.classList.add("in"); revealObserver.unobserve(e.target); }
+          });
+        }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
+      }
+      document.querySelectorAll(".reveal:not(.in)").forEach((el) => revealObserver.observe(el));
+    }
+
+    function initScrollHeader() {
+      const header = document.getElementById("siteHeader");
+      const onScroll = () => header.classList.toggle("scrolled", window.scrollY > 40);
+      onScroll();
+      window.addEventListener("scroll", onScroll, { passive: true });
+    }
+
     // ===== 初期化 =====
+    document.documentElement.classList.add("has-js");
     document.querySelectorAll(".lang-toggle button").forEach((b) => {
       b.addEventListener("click", () => setLang(b.getAttribute("data-lang")));
     });
     document.getElementById("year").textContent = new Date().getFullYear();
+    initScrollHeader();
     setLang(currentLang);
+    observeReveals();
   </script>
 </body>
 </html>
