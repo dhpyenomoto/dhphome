@@ -113,13 +113,14 @@
           // 語句（日本語は文字）ごとに分割し、滑らかな波のように順に動かす
           const toks = leadTokens(val);
           const count = toks.filter((tk) => !/^\s+$/.test(tk)).length || 1;
-          const step = Math.min(0.06, 1.4 / count); // トークン数に応じて間隔を調整
+          const step = Math.min(0.05, 1.6 / count); // 入場のせり上がり間隔（語数で調整）
           let wi = 0;
           el.innerHTML = toks.map((tok) => {
             if (/^\s+$/.test(tok)) return tok;             // 英語の語間スペースはそのまま
-            const d = (0.55 + wi * step).toFixed(3);
+            const enter = (0.7 + wi * step).toFixed(3);    // 入場のディレイ
+            const wave = (4.2 + (wi % 16) * 0.16).toFixed(3); // 連続さざ波の位相（入場後に開始）
             wi++;
-            return `<span class="word"><span class="word-inner" style="animation-delay:${d}s">${escHtml(tok)}</span></span>`;
+            return `<span class="word"><span class="word-inner" style="animation-delay:${enter}s, ${wave}s">${escHtml(tok)}</span></span>`;
           }).join("");
         } else if (val.indexOf("\n") >= 0) {
           // 改行を行ごとのマスク要素に分割（行単位のモーション用）
@@ -293,7 +294,7 @@
         }
         cur = next;
         slides[cur].classList.add("active");
-      }, 5500);
+      }, 7500);
     }
 
     // ===== 初期化 =====

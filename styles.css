@@ -162,10 +162,10 @@ a { color: inherit; }
 /* 入場前の初期状態（JS時のみ）— マスク内で下から静かにせり上がる */
 .has-js .hero h1 .line-inner { transform: translateY(116%); }
 .has-js .hero h1 .line.in .line-inner {
-  animation: lineRise 1.5s cubic-bezier(0.19, 1, 0.22, 1) both;
+  animation: lineRise 2.2s cubic-bezier(0.19, 1, 0.22, 1) both;
 }
-.has-js .hero h1 .line.in:nth-child(2) .line-inner { animation-delay: 0.18s; }
-.has-js .hero h1 .line.in:nth-child(3) .line-inner { animation-delay: 0.36s; }
+.has-js .hero h1 .line.in:nth-child(2) .line-inner { animation-delay: 0.3s; }
+.has-js .hero h1 .line.in:nth-child(3) .line-inner { animation-delay: 0.6s; }
 @keyframes lineRise {
   from { transform: translateY(116%); }
   to   { transform: translateY(0); }
@@ -185,42 +185,48 @@ a { color: inherit; }
     color: transparent;
   }
   .has-js .hero h1 .line.in .line-inner {
-    animation: lineRise 1.5s cubic-bezier(0.19, 1, 0.22, 1) both,
-               sheen 7s ease-in-out infinite;
-    animation-delay: 0s, 2s;
+    animation: lineRise 2.2s cubic-bezier(0.19, 1, 0.22, 1) both,
+               sheen 11s ease-in-out infinite;
+    animation-delay: 0s, 3.4s;
   }
-  .has-js .hero h1 .line.in:nth-child(2) .line-inner { animation-delay: 0.18s, 2.2s; }
-  .has-js .hero h1 .line.in:nth-child(3) .line-inner { animation-delay: 0.36s, 2.4s; }
+  .has-js .hero h1 .line.in:nth-child(2) .line-inner { animation-delay: 0.3s, 3.7s; }
+  .has-js .hero h1 .line.in:nth-child(3) .line-inner { animation-delay: 0.6s, 4s; }
 }
 @keyframes sheen {
-  0%        { background-position: 165% 0; }
-  38%, 100% { background-position: -70% 0; }
+  0%        { background-position: 160% 0; }
+  34%, 100% { background-position: -65% 0; }
 }
 
 /* ---- Eyebrow / stats（静かなフェードアップ）---- */
 .has-js .hero .eyebrow,
 .has-js .hero-stats { opacity: 0; }
 .has-js .hero .eyebrow.in,
-.has-js .hero-stats.in { animation: heroRise 1.2s var(--ease) both; }
-.has-js .hero .eyebrow.in { animation-delay: 0.1s; }
-.has-js .hero-stats.in { animation-delay: 1s; }
+.has-js .hero-stats.in { animation: heroRise 1.6s var(--ease) both; }
+.has-js .hero .eyebrow.in { animation-delay: 0.15s; }
+.has-js .hero-stats.in { animation-delay: 1.6s; }
 @keyframes heroRise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
 
-/* ---- Lead（タイトル下の文）— 語句ごとに上品にせり上がる ---- */
+/* ---- Lead（タイトル下の文）— 語句ごとに上品にせり上がり、その後さざ波のように流れ続ける ---- */
 .hero-lead .word { display: inline; }
 .hero-lead .word-inner { display: inline-block; will-change: transform, opacity; }
 .has-js .hero-lead .word-inner { opacity: 0; transform: translateY(0.5em); filter: blur(4px); }
-.has-js .hero-lead.in .word-inner { animation: wordRise 1s cubic-bezier(0.19, 1, 0.22, 1) both; }
+.has-js .hero-lead.in .word-inner {
+  animation: wordRise 1.5s cubic-bezier(0.19, 1, 0.22, 1) both,
+             leadWave 7s ease-in-out infinite;
+}
 @keyframes wordRise {
   from { opacity: 0; transform: translateY(0.5em); filter: blur(4px); }
   to   { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
+/* 連続するさざ波（入場後にゆっくり上下、語句ごとに位相がずれて波が伝わる） */
+@keyframes leadWave {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
 
 /* ---- 常時ゆっくり浮遊（入場後・親要素に適用して子のリビールと合成）---- */
-.has-js .hero h1   { animation: floatTitle 6.5s ease-in-out 2s infinite; }
-.has-js .hero-lead { animation: floatLead 8s ease-in-out 3.4s infinite; }
-@keyframes floatTitle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-11px); } }
-@keyframes floatLead  { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.has-js .hero h1 { animation: floatTitle 11s ease-in-out 3s infinite; }
+@keyframes floatTitle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
 
 .hero-stats .stat { opacity: inherit; }
 @media (prefers-reduced-motion: reduce) {
