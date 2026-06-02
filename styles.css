@@ -216,10 +216,18 @@ a { color: inherit; }
   to   { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 
+/* ---- 常時ゆっくり浮遊（入場後・親要素に適用して子のリビールと合成）---- */
+.has-js .hero h1   { animation: floatTitle 6.5s ease-in-out 2s infinite; }
+.has-js .hero-lead { animation: floatLead 8s ease-in-out 3.4s infinite; }
+@keyframes floatTitle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-11px); } }
+@keyframes floatLead  { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
 .hero-stats .stat { opacity: inherit; }
 @media (prefers-reduced-motion: reduce) {
+  .has-js .hero h1,
   .has-js .hero h1 .line-inner,
   .has-js .hero .eyebrow,
+  .has-js .hero-lead,
   .has-js .hero-lead .word-inner,
   .has-js .hero-stats { transform: none; opacity: 1; filter: none; animation: none; }
   .has-js .hero h1 .line-inner {
