@@ -87,6 +87,14 @@
     .upload-zone.dragover { border-color: var(--accent); background: rgba(199,168,106,0.08); }
     .upload-zone .uz-title { margin: 0 0 2px; font-weight: 600; font-size: 0.92rem; }
     .upload-zone .uz-sub { margin: 0 0 10px; color: var(--muted); font-size: 0.82rem; }
+    .translate-bar {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+      background: rgba(199,168,106,0.08); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 14px; margin-bottom: 18px;
+    }
+    .translate-bar .tr-toggle { display: flex; align-items: center; gap: 7px; font-size: 0.86rem; font-weight: 600; }
+    .translate-bar .tr-toggle input { width: auto; }
+    input.translating, textarea.translating { background-image: linear-gradient(90deg, rgba(199,168,106,0.18), rgba(199,168,106,0.05)); }
     @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .wrap { padding: 24px 16px; } }
   </style>
 </head>
@@ -101,6 +109,19 @@
     <div class="panel" id="formPanel">
       <h2 id="formTitle">案件を追加</h2>
       <p class="hint">バイリンガル項目は日本語・英語の両方を入力してください（CLAUDE.md のデータ構造に準拠）。</p>
+
+      <div class="translate-bar">
+        <label class="tr-toggle">
+          <input type="checkbox" id="autoTranslate" checked />
+          日本語の入力→英語を自動翻訳
+        </label>
+        <button type="button" class="btn btn-ghost" id="translateAll">未入力の英語をまとめて翻訳</button>
+        <span class="msg" id="trMsg"></span>
+        <p class="hint" style="width:100%;margin:6px 0 0">
+          ※ 翻訳はオンラインの無料サービス（MyMemory）を利用します。入力テキストが外部に送信されます。
+          固有名詞などは精度が落ちる場合があるため、結果は確認・修正してください。
+        </p>
+      </div>
 
       <form id="projectForm">
         <input type="hidden" id="editId" />
@@ -876,11 +897,104 @@ if (typeof window !== "undefined") {
     $("gh-save").addEventListener("click", githubSave);
     $("gh-remember").addEventListener("change", persistGhConfig);
 
+    // ===== 日本語→英語 自動翻訳（MyMemory 無料API・キー不要）=====
+    const TRANSLATE_PAIRS = [
+      ["f-name-ja", "f-name-en"],
+      ["f-location-ja", "f-location-en"],
+      ["f-summary-ja", "f-summary-en"],
+      ["f-status-ja", "f-status-en"],
+      ["f-investment-ja", "f-investment-en"],
+      ["f-plan-ja", "f-plan-en"],
+      ["f-story-ja", "f-story-en"]
+    ];
+
+    async function mmTranslate(text) {
+      const url = "https://api.mymemory.translated.net/get?langpair=ja|en&q=" + encodeURIComponent(text);
+      const res = await fetch(url);
+      const j = await res.json();
+      const st = j.responseStatus;
+      if (st !== 200 && st !== "200") throw new Error(j.responseDetails || ("status " + st));
+      const out = (j.responseData && j.responseData.translatedText) || "";
+      if (/MYMEMORY WARNING|YOU USED ALL AVAILABLE/i.test(out)) throw new Error("quota");
+      return out;
+    }
+
+    // 長文はAPI上限(約500文字)を超えるため、文単位に分割して翻訳・連結
+    async function translateJaToEn(text) {
+      text = (text || "").trim();
+      if (!text) return "";
+      const segs = text.replace(/(。|！|？|\n)/g, "$1").split("").filter((s) => s.length);
+      const chunks = [];
+      let buf = "";
+      (segs.length ? segs : [text]).forEach((seg) => {
+        if ((buf + seg).length > 450) { if (buf) chunks.push(buf); buf = seg; }
+        else buf += seg;
+      });
+      if (buf) chunks.push(buf);
+      const out = [];
+      for (const c of chunks) out.push(await mmTranslate(c));
+      return out.join(" ").replace(/\s+/g, " ").trim();
+    }
+
+    let translateBusy = false;
+    async function fillTranslate(jaId, enId, overwrite) {
+      const ja = $(jaId).value.trim();
+      if (!ja) return false;
+      if (!overwrite && $(enId).value.trim()) return false;
+      const enEl = $(enId);
+      enEl.classList.add("translating");
+      showMsg($("trMsg"), "翻訳中…", true);
+      try {
+        const t = await translateJaToEn(ja);
+        if (t) enEl.value = t;
+        showMsg($("trMsg"), "翻訳しました（要確認）。", true);
+        return true;
+      } catch (e) {
+        showMsg($("trMsg"), "翻訳に失敗しました（通信状況や利用上限の可能性）。", false);
+        return false;
+      } finally {
+        enEl.classList.remove("translating");
+      }
+    }
+
+    function attachTranslate() {
+      TRANSLATE_PAIRS.forEach(([jaId, enId]) => {
+        const j = $(jaId);
+        if (!j) return;
+        j.addEventListener("blur", async () => {
+          if (!$("autoTranslate").checked || translateBusy) return;
+          if (!$(jaId).value.trim() || $(enId).value.trim()) return;
+          translateBusy = true;
+          await fillTranslate(jaId, enId, false);
+          translateBusy = false;
+        });
+      });
+      // 資料タイトルの日本語→英語も対応
+      const dja = $("d-ja");
+      if (dja) dja.addEventListener("blur", async () => {
+        if (!$("autoTranslate").checked || translateBusy) return;
+        if (!$("d-ja").value.trim() || $("d-en").value.trim()) return;
+        translateBusy = true; await fillTranslate("d-ja", "d-en", false); translateBusy = false;
+      });
+
+      $("translateAll").addEventListener("click", async () => {
+        if (translateBusy) return;
+        translateBusy = true;
+        let n = 0;
+        for (const [jaId, enId] of TRANSLATE_PAIRS) {
+          if ($(jaId).value.trim() && !$(enId).value.trim()) { if (await fillTranslate(jaId, enId, false)) n++; }
+        }
+        translateBusy = false;
+        showMsg($("trMsg"), n ? (n + "項目を翻訳しました（要確認）。") : "翻訳対象（未入力の英語）がありません。", true);
+      });
+    }
+
     // ===== 初期化 =====
     fillCategorySelect();
     renderRows();
     resetForm();        // 新規追加フォームに次のNo.（dhp連番）を自動表示
     loadGhConfig();
+    attachTranslate();
   </script>
 </body>
 </html>
