@@ -25,7 +25,8 @@
   </header>
 
   <section class="hero">
-    <div class="hero-bg" aria-hidden="true"></div>
+    <div class="hero-slides" id="heroSlides" aria-hidden="true"></div>
+    <div class="hero-overlay" aria-hidden="true"></div>
     <div class="hero-inner">
       <p class="eyebrow" data-i18n="heroEyebrow"></p>
       <h1 data-i18n="heroTitle"></h1>
@@ -59,10 +60,10 @@
     // ===== i18n 辞書（固定文言）=====
     const UI_TEXT = {
       heroEyebrow: { ja: "ホテル・リゾート ディベロップメント", en: "Hotel & Resort Development" },
-      heroTitle: { ja: "都市と自然に、\n次代のランドマークを。",
-                   en: "Crafting the next\nlandmarks of place." },
-      heroLead:  { ja: "dhp都市開発 GP のホテル・リゾート関連 企画・進行中案件および完了実績（2026年3月末現在）。投資家・ディベロッパーの皆様へ、進行状況ごとに整理してご紹介します。",
-                   en: "Hotel and resort projects of dhp Urban Development GP — ongoing pipeline and completed track record (as of end of March 2026), organized by stage for investors and developers." },
+      heroTitle: { ja: "価値創造の\nプロセスを、\n物語として。",
+                   en: "The process\nof value creation,\ntold as a story." },
+      heroLead:  { ja: "ホテル開発、都市再生、収益不動産の再構築——一つひとつのプロジェクトには、課題があり、戦略があり、実行と成果の物語がある。",
+                   en: "Hotel development, urban regeneration, and the repositioning of income-generating real estate — every project holds a challenge, a strategy, and a story of execution and results." },
       portfolioTitle: { ja: "プロジェクト ポートフォリオ", en: "Project Portfolio" },
       filterLabel: { ja: "Selected Works", en: "Selected Works" },
       allCategory: { ja: "すべて", en: "All" },
@@ -226,6 +227,43 @@
       window.addEventListener("scroll", onScroll, { passive: true });
     }
 
+    // ===== ヒーローの写真スライドショー（クロスフェード + ズーム）=====
+    const HERO_IMAGES = [
+      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2200&q=80", // ホテル開発
+      "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=2200&q=80",     // 都市再生
+      "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=2200&q=80",  // 収益不動産
+      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2200&q=80"   // リゾート
+    ];
+    function initHeroSlides() {
+      const wrap = document.getElementById("heroSlides");
+      if (!wrap) return;
+      HERO_IMAGES.forEach((url, i) => {
+        const d = document.createElement("div");
+        d.className = "hero-slide" + (i === 0 ? " active" : "");
+        d.style.backgroundImage = 'url("' + url + '")';
+        // 先読みして読み込み失敗時はスキップ対象に
+        const pre = new Image();
+        pre.onerror = () => d.setAttribute("data-failed", "1");
+        pre.src = url;
+        wrap.appendChild(d);
+      });
+      const slides = Array.prototype.slice.call(wrap.querySelectorAll(".hero-slide"));
+      if (slides.length < 2) return;
+      const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reduce) return;
+      let cur = 0;
+      setInterval(() => {
+        slides[cur].classList.remove("active");
+        let next = cur;
+        for (let n = 0; n < slides.length; n++) {
+          next = (next + 1) % slides.length;
+          if (!slides[next].getAttribute("data-failed")) break;
+        }
+        cur = next;
+        slides[cur].classList.add("active");
+      }, 5500);
+    }
+
     // ===== 初期化 =====
     document.documentElement.classList.add("has-js");
     document.querySelectorAll(".lang-toggle button").forEach((b) => {
@@ -233,6 +271,7 @@
     });
     document.getElementById("year").textContent = new Date().getFullYear();
     initScrollHeader();
+    initHeroSlides();
     setLang(currentLang);
     observeReveals();
   </script>
