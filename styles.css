@@ -156,35 +156,28 @@ a { color: inherit; }
 }
 .hero-stats { display: flex; gap: 48px; margin-top: 48px; flex-wrap: wrap; }
 
-/* ---- Hero headline motion（ダイナミックな入場 + 継続シャイン）---- */
-.hero h1 .line { display: block; padding-bottom: 0.04em; }
-.hero h1 .line-inner { display: block; transform-origin: left bottom; }
-/* 入場前の初期状態（JS時のみ） */
-.has-js .hero h1 .line-inner {
-  opacity: 0;
-  transform: translateY(56px) scale(0.94);
-  filter: blur(8px);
-}
-/* せり上がり＋わずかな弾み（back系イージング） */
+/* ---- Hero headline motion（上質なマスク・リビール + 控えめな金のシャイン）---- */
+.hero h1 .line { display: block; overflow: hidden; padding-bottom: 0.08em; }
+.hero h1 .line-inner { display: block; transform-origin: left bottom; will-change: transform; }
+/* 入場前の初期状態（JS時のみ）— マスク内で下から静かにせり上がる */
+.has-js .hero h1 .line-inner { transform: translateY(116%); }
 .has-js .hero h1 .line.in .line-inner {
-  animation: linePop 0.95s cubic-bezier(0.18, 0.92, 0.24, 1.12) both;
+  animation: lineRise 1.5s cubic-bezier(0.19, 1, 0.22, 1) both;
 }
-.has-js .hero h1 .line.in:nth-child(2) .line-inner { animation-delay: 0.14s; }
-.has-js .hero h1 .line.in:nth-child(3) .line-inner { animation-delay: 0.28s; }
-@keyframes linePop {
-  0%   { opacity: 0; transform: translateY(56px) scale(0.94); filter: blur(8px); }
-  55%  { opacity: 1; filter: blur(0); }
-  78%  { transform: translateY(-6px) scale(1.012); }
-  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+.has-js .hero h1 .line.in:nth-child(2) .line-inner { animation-delay: 0.18s; }
+.has-js .hero h1 .line.in:nth-child(3) .line-inner { animation-delay: 0.36s; }
+@keyframes lineRise {
+  from { transform: translateY(116%); }
+  to   { transform: translateY(0); }
 }
 
-/* 文字を横切る金色のシャイン（対応ブラウザのみ・テキストはグラデーション塗り） */
+/* 文字を横切る金色のシャイン（対応ブラウザのみ・上品にゆっくり・低頻度） */
 @supports ((-webkit-background-clip: text) or (background-clip: text)) {
   .has-js .hero h1 .line-inner {
-    background-image: linear-gradient(105deg,
-      #eef0f3 0%, #eef0f3 36%, #ffffff 45%, #e7cf95 50%, #ffffff 55%, #eef0f3 64%, #eef0f3 100%);
-    background-size: 250% 100%;
-    background-position: 165% 0;
+    background-image: linear-gradient(108deg,
+      #eceef2 0%, #eceef2 40%, #fbf6ea 47%, #d9bd84 50%, #fbf6ea 53%, #eceef2 60%, #eceef2 100%);
+    background-size: 230% 100%;
+    background-position: 150% 0;
     background-repeat: no-repeat;
     -webkit-background-clip: text;
     background-clip: text;
@@ -192,33 +185,42 @@ a { color: inherit; }
     color: transparent;
   }
   .has-js .hero h1 .line.in .line-inner {
-    animation: linePop 0.95s cubic-bezier(0.18, 0.92, 0.24, 1.12) both,
-               sheen 4.8s ease-in-out infinite;
-    animation-delay: 0s, 1.5s;
+    animation: lineRise 1.5s cubic-bezier(0.19, 1, 0.22, 1) both,
+               sheen 7s ease-in-out infinite;
+    animation-delay: 0s, 2s;
   }
-  .has-js .hero h1 .line.in:nth-child(2) .line-inner { animation-delay: 0.14s, 1.65s; }
-  .has-js .hero h1 .line.in:nth-child(3) .line-inner { animation-delay: 0.28s, 1.8s; }
+  .has-js .hero h1 .line.in:nth-child(2) .line-inner { animation-delay: 0.18s, 2.2s; }
+  .has-js .hero h1 .line.in:nth-child(3) .line-inner { animation-delay: 0.36s, 2.4s; }
 }
 @keyframes sheen {
-  0%        { background-position: 175% 0; }
-  45%, 100% { background-position: -75% 0; }
+  0%        { background-position: 165% 0; }
+  38%, 100% { background-position: -70% 0; }
 }
 
+/* ---- Eyebrow / stats（静かなフェードアップ）---- */
 .has-js .hero .eyebrow,
-.has-js .hero-lead,
 .has-js .hero-stats { opacity: 0; }
 .has-js .hero .eyebrow.in,
-.has-js .hero-lead.in,
-.has-js .hero-stats.in { animation: heroRise 0.9s var(--ease) forwards; }
-.has-js .hero-lead.in { animation-delay: 0.32s; }
-.has-js .hero-stats.in { animation-delay: 0.46s; }
-@keyframes heroRise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+.has-js .hero-stats.in { animation: heroRise 1.2s var(--ease) both; }
+.has-js .hero .eyebrow.in { animation-delay: 0.1s; }
+.has-js .hero-stats.in { animation-delay: 1s; }
+@keyframes heroRise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+
+/* ---- Lead（タイトル下の文）— 語句ごとに上品にせり上がる ---- */
+.hero-lead .word { display: inline; }
+.hero-lead .word-inner { display: inline-block; will-change: transform, opacity; }
+.has-js .hero-lead .word-inner { opacity: 0; transform: translateY(0.5em); filter: blur(4px); }
+.has-js .hero-lead.in .word-inner { animation: wordRise 1s cubic-bezier(0.19, 1, 0.22, 1) both; }
+@keyframes wordRise {
+  from { opacity: 0; transform: translateY(0.5em); filter: blur(4px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
 
 .hero-stats .stat { opacity: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .has-js .hero h1 .line-inner,
   .has-js .hero .eyebrow,
-  .has-js .hero-lead,
+  .has-js .hero-lead .word-inner,
   .has-js .hero-stats { transform: none; opacity: 1; filter: none; animation: none; }
   .has-js .hero h1 .line-inner {
     background-image: none;

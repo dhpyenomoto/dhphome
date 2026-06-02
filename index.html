@@ -98,12 +98,30 @@
     // ===== 固定文言の流し込み =====
     const escHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+    // リード文を語句に分割（英語は単語、日本語は読点・句点など区切りで）
+    function leadTokens(text) {
+      if (text.indexOf(" ") >= 0) return text.split(/(\s+)/);
+      return text.replace(/(、|。|」|・|——|―|，)/g, "$1").split("").filter((s) => s.length);
+    }
+
     function applyStaticText() {
       document.documentElement.lang = currentLang;
       document.querySelectorAll("[data-i18n]").forEach((el) => {
         const val = t(el.getAttribute("data-i18n"));
         if (typeof val !== "string") { return; }
-        if (val.indexOf("\n") >= 0) {
+        if (el.classList && el.classList.contains("hero-lead")) {
+          // 語句（日本語は文字）ごとに分割し、滑らかな波のように順に動かす
+          const toks = leadTokens(val);
+          const count = toks.filter((tk) => !/^\s+$/.test(tk)).length || 1;
+          const step = Math.min(0.06, 1.4 / count); // トークン数に応じて間隔を調整
+          let wi = 0;
+          el.innerHTML = toks.map((tok) => {
+            if (/^\s+$/.test(tok)) return tok;             // 英語の語間スペースはそのまま
+            const d = (0.55 + wi * step).toFixed(3);
+            wi++;
+            return `<span class="word"><span class="word-inner" style="animation-delay:${d}s">${escHtml(tok)}</span></span>`;
+          }).join("");
+        } else if (val.indexOf("\n") >= 0) {
           // 改行を行ごとのマスク要素に分割（行単位のモーション用）
           el.innerHTML = val.split("\n").map((s) =>
             `<span class="line"><span class="line-inner">${escHtml(s)}</span></span>`
