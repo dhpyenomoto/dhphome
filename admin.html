@@ -79,6 +79,14 @@
       background: rgba(255,255,255,0.08); border: none; color: var(--text); border-radius: 5px; cursor: pointer; padding: 5px 10px; font-size: .85rem;
     }
     code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
+    .upload-zone {
+      margin-top: 10px; text-align: center; padding: 20px 16px;
+      border: 1.5px dashed var(--border-2); border-radius: 8px; background: rgba(255,255,255,0.02);
+      transition: border-color .2s ease, background .2s ease;
+    }
+    .upload-zone.dragover { border-color: var(--accent); background: rgba(199,168,106,0.08); }
+    .upload-zone .uz-title { margin: 0 0 2px; font-weight: 600; font-size: 0.92rem; }
+    .upload-zone .uz-sub { margin: 0 0 10px; color: var(--muted); font-size: 0.82rem; }
     @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .wrap { padding: 24px 16px; } }
   </style>
 </head>
@@ -164,14 +172,30 @@
           <div class="field"><label for="f-story-en">English</label><textarea id="f-story-en" style="min-height:90px"></textarea></div>
         </div>
 
-        <p class="legend">写真 / Photos（URL または images/foo.jpg）</p>
+        <p class="legend">写真 / Photos</p>
         <div class="repeat-block">
           <div id="galleryList"></div>
-          <div class="btn-row" style="margin-top:8px">
-            <input id="g-input" placeholder="https://... または images/foo.jpg" style="flex:1;min-width:240px" />
-            <button type="button" class="btn btn-ghost" id="g-add">＋ 写真を追加</button>
+
+          <!-- 端末/iPad の写真からアップロード -->
+          <div class="upload-zone" id="g-drop">
+            <input type="file" id="g-file" accept="image/*" multiple hidden />
+            <p class="uz-title">端末・iPad の写真からアップロード</p>
+            <p class="uz-sub">ここにドラッグ＆ドロップ、または</p>
+            <button type="button" class="btn btn-ghost" id="g-pick">写真を選択</button>
+            <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted);margin-top:10px;justify-content:center">
+              <input type="checkbox" id="g-resize" checked style="width:auto" />
+              アップロード前に長辺2000pxへ縮小（推奨・軽量化）
+            </label>
+            <p class="hint" style="margin:8px 0 0">※ GitHub にコミットして保存します。下の「GitHub に保存」のリポジトリ／ブランチ／トークンを使用します。</p>
+            <p class="msg" id="g-upmsg" style="margin-left:0"></p>
           </div>
-          <p class="hint" style="margin:6px 0 0">先頭の写真は一覧カードのサムネイルにも使われます。</p>
+
+          <!-- URL / Dropbox -->
+          <div class="btn-row" style="margin-top:12px">
+            <input id="g-input" placeholder="画像URL / Dropbox共有リンク / images/foo.jpg" style="flex:1;min-width:240px" />
+            <button type="button" class="btn btn-ghost" id="g-add">＋ URLで追加</button>
+          </div>
+          <p class="hint" style="margin:6px 0 0">先頭の写真は一覧カードのサムネイルにも使われます。Dropbox の共有リンクは自動で直接表示用URLに変換します。</p>
         </div>
 
         <p class="legend">資料（ダウンロード）/ Documents</p>
@@ -289,6 +313,7 @@
     // ===== 写真・資料の編集用バッファ =====
     let formGallery = [];   // [ "url", ... ]
     let formDocuments = []; // [ { ja, en, file }, ... ]
+    const galleryPreview = {}; // { "images/xxx.jpg": "data:image/...." } アップロード直後のプレビュー用
 
     function escAttr(s) {
       return String(s == null ? "" : s).replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -306,8 +331,9 @@
       formGallery.forEach((src, i) => {
         const row = document.createElement("div");
         row.className = "repeat-item";
+        const shown = galleryPreview[src] || src;
         row.innerHTML = `
-          <img src="${escAttr(src)}" alt="" onerror="this.style.visibility='hidden'">
+          <img src="${escAttr(shown)}" alt="" onerror="this.style.visibility='hidden'">
           <div class="ri-main"><div class="ri-sub">${escAttr(src)}</div></div>
           <button type="button" class="ri-up"   data-mv="${i}" data-dir="-1">↑</button>
           <button type="button" class="ri-down" data-mv="${i}" data-dir="1">↓</button>
@@ -342,13 +368,139 @@
         b.addEventListener("click", () => { moveItem(formDocuments, +b.dataset.mv, +b.dataset.dir); renderDocs(); }));
     }
 
+    // Dropbox 共有リンクを直接表示用URLに変換（その他はそのまま）
+    function normalizeImageUrl(u) {
+      u = String(u || "").trim();
+      if (/dropbox\.com/.test(u)) {
+        u = u.replace(/[?&](dl|raw)=\d/g, "");
+        u += (u.indexOf("?") >= 0 ? "&" : "?") + "raw=1";
+      }
+      return u;
+    }
+
     $("g-add").addEventListener("click", () => {
-      const v = $("g-input").value.trim();
+      const v = normalizeImageUrl($("g-input").value);
       if (!v) return;
       formGallery.push(v);
       $("g-input").value = "";
       renderGallery();
     });
+
+    // ===== 端末/iPad の写真からアップロード（GitHub に直接コミット）=====
+    // バイト列を base64 に
+    function bytesToBase64(bytes) {
+      let bin = "";
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+      }
+      return btoa(bin);
+    }
+
+    // 画像を長辺 maxEdge に縮小し JPEG Blob で返す（縮小しない場合は元 File を返す）
+    function resizeImage(file, maxEdge) {
+      return new Promise((resolve) => {
+        if (!maxEdge || !/^image\//.test(file.type) || /gif|svg/.test(file.type)) { resolve(file); return; }
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+          if (scale >= 1) { resolve(file); return; }
+          const cv = document.createElement("canvas");
+          cv.width = Math.round(img.width * scale);
+          cv.height = Math.round(img.height * scale);
+          cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+          cv.toBlob((blob) => resolve(blob || file), "image/jpeg", 0.85);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+        img.src = url;
+      });
+    }
+
+    function blobToBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => {
+          const buf = new Uint8Array(fr.result);
+          resolve(bytesToBase64(buf));
+        };
+        fr.onerror = reject;
+        fr.readAsArrayBuffer(blob);
+      });
+    }
+
+    function safeName(name) {
+      const dot = name.lastIndexOf(".");
+      let base = (dot > 0 ? name.slice(0, dot) : name).toLowerCase()
+        .replace(/[^a-z0-9-_]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "photo";
+      return base;
+    }
+
+    async function uploadImageFile(file) {
+      const repoInfo = ghParseRepo($("gh-repo").value);
+      const branch = $("gh-branch").value.trim() || "main";
+      const token = $("gh-token").value.trim();
+      if (!repoInfo) throw new Error("「GitHub に保存」のリポジトリ（owner/repo）を入力してください。");
+      if (!token) throw new Error("「GitHub に保存」のアクセストークン（PAT）を入力してください。");
+
+      const resized = await resizeImage(file, $("g-resize").checked ? 2000 : 0);
+      const isJpeg = resized !== file; // 縮小した場合は JPEG
+      const ext = isJpeg ? "jpg" : (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const pid = ($("f-id").value.trim() || "img");
+      const fname = `${pid}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}-${safeName(file.name)}.${ext}`;
+      const path = `images/${fname}`;
+
+      const b64 = await blobToBase64(resized);
+      const apiUrl = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${encodeURIComponent("images")}/${encodeURIComponent(fname)}`;
+      const res = await fetch(apiUrl, {
+        method: "PUT",
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Accept": "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ message: `Add image ${path} via admin`, content: b64, branch })
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(`${file.name}: アップロード失敗（${res.status}）${json.message || ""}`);
+
+      // 直後プレビュー用に dataURL を保持
+      try {
+        galleryPreview[path] = "data:" + (isJpeg ? "image/jpeg" : file.type) + ";base64," + b64;
+      } catch (e) {}
+      formGallery.push(path);
+      renderGallery();
+      return path;
+    }
+
+    async function handleFiles(fileList) {
+      const files = Array.from(fileList || []).filter((f) => /^image\//.test(f.type));
+      if (!files.length) return;
+      const btn = $("g-pick");
+      btn.disabled = true;
+      let done = 0;
+      for (const f of files) {
+        showMsg($("g-upmsg"), `アップロード中… (${done + 1}/${files.length}) ${f.name}`, true);
+        try { await uploadImageFile(f); done++; }
+        catch (err) { showMsg($("g-upmsg"), String(err.message || err), false); btn.disabled = false; return; }
+      }
+      btn.disabled = false;
+      showMsg($("g-upmsg"), `${done}枚をアップロードしてギャラリーに追加しました。`, true);
+    }
+
+    $("g-pick").addEventListener("click", () => $("g-file").click());
+    $("g-file").addEventListener("change", (e) => { handleFiles(e.target.files); e.target.value = ""; });
+
+    // ドラッグ＆ドロップ
+    const dz = $("g-drop");
+    ["dragenter", "dragover"].forEach((ev) =>
+      dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add("dragover"); }));
+    ["dragleave", "drop"].forEach((ev) =>
+      dz.addEventListener(ev, (e) => { e.preventDefault(); if (ev !== "dragleave" || e.target === dz) dz.classList.remove("dragover"); }));
+    dz.addEventListener("drop", (e) => { if (e.dataTransfer && e.dataTransfer.files) handleFiles(e.dataTransfer.files); });
+
     $("d-add").addEventListener("click", () => {
       const file = $("d-file").value.trim();
       if (!file) { showMsg($("formMsg"), "資料のファイル/URLを入力してください。", false); return; }

@@ -14,6 +14,7 @@
 | `admin.html` | 案件の追加・編集・削除を行い、`data.js` を再生成して書き出す管理画面 |
 | `project.html` | 案件詳細ページ。`project.html?id=p001` の形式で `data.js` から1件を表示（所在地・詳細・写真・ストーリー・資料ダウンロード） |
 | `styles.css` | 公開ページ・詳細ページの共通スタイル |
+| `images/` | プロジェクト写真の格納庫。admin から端末/iPad の写真を直接アップロード可（`images/README.md`） |
 | `downloads/` | ダウンロード資料（PDF等）の格納庫。`downloads/README.md` に追加手順 |
 | `CLAUDE.md`  | 本ドキュメント（ルールとデータ構造） |
 
@@ -73,6 +74,9 @@ const SITE_DATA = {
 - `year` は数値または `null`。`area` / `landArea` は文字列（空可）。
 - `gallery` は**文字列の配列**（写真のURLまたは相対パス）。空配列 `[]` 可。
   先頭要素は一覧カードのサムネイルにも使われます（`image` 未設定時）。
+  admin では **端末/iPad の写真をアップロード**（GitHub Contents API で `images/` に
+  直接コミット）、**Dropbox 共有リンク**（自動で直接表示URLに変換）、URL/相対パスの
+  3通りで登録できます。アップロードは「GitHub に保存」のリポジトリ/ブランチ/トークンを使用します。
 - `documents` は **`{ ja, en, file }` の配列**。`file` はリポジトリ内の相対パス
   （`downloads/xxx.pdf`）またはフルURL。`ja`/`en` はダウンロードボタンの表示名。
   空配列 `[]` 可。資料の追加手順は `downloads/README.md` を参照。
