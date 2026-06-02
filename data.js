@@ -15,7 +15,7 @@ const SITE_DATA = {
   ],
   projects: [
     {
-      id: "dhp0001",
+      id: "dhp0052",
       category: "ongoing",
       image: "",
       name: { ja: "川奈リゾートホテル PJ（新規）", en: "Kawana Resort Hotel (New)" },
@@ -32,7 +32,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0002",
+      id: "dhp0051",
       category: "ongoing",
       image: "",
       name: { ja: "熱海リゾートホテル PJ（新規）", en: "Atami Resort Hotel (New)" },
@@ -49,7 +49,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0003",
+      id: "dhp0050",
       category: "ongoing",
       image: "",
       name: { ja: "京都哲学の道 迎賓館 PJ", en: "Kyoto Philosopher's Path Guest House" },
@@ -66,7 +66,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0004",
+      id: "dhp0049",
       category: "ongoing",
       image: "",
       name: { ja: "日光リゾートホテル PJ①（東照宮北側）", en: "Nikko Resort Hotel I (north of Toshogu)" },
@@ -83,7 +83,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0005",
+      id: "dhp0048",
       category: "ongoing",
       image: "",
       name: { ja: "日光リゾートホテル PJ②（テニスコート）", en: "Nikko Resort Hotel II (tennis court site)" },
@@ -100,7 +100,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0006",
+      id: "dhp0047",
       category: "ongoing",
       image: "",
       name: { ja: "日光YH リニューアル PJ", en: "Nikko Youth Hostel Renewal" },
@@ -117,7 +117,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0007",
+      id: "dhp0046",
       category: "ongoing",
       image: "",
       name: { ja: "伊丹コンフォルトホテル リブランド PJ", en: "Itami Comfort Hotel Rebrand" },
@@ -134,7 +134,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0008",
+      id: "dhp0045",
       category: "ongoing",
       image: "",
       name: { ja: "大阪北区西天満 エンターテイメントホテル PJ", en: "Osaka Nishi-Tenma Entertainment Hotel" },
@@ -151,7 +151,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0009",
+      id: "dhp0044",
       category: "ongoing",
       image: "",
       name: { ja: "山梨県勝沼ワイナリーホテル PJ", en: "Yamanashi Katsunuma Winery Hotel" },
@@ -168,7 +168,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0010",
+      id: "dhp0043",
       category: "ongoing",
       image: "",
       name: { ja: "湯田中温泉 保養所リブランド PJ", en: "Yudanaka Onsen Retreat Rebrand" },
@@ -185,7 +185,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0011",
+      id: "dhp0042",
       category: "ongoing",
       image: "",
       name: { ja: "名古屋駅前 ライフスタイルホテル PJ", en: "Nagoya Station-front Lifestyle Hotel" },
@@ -202,7 +202,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0012",
+      id: "dhp0041",
       category: "ongoing",
       image: "",
       name: { ja: "中軽井沢駅前 ライフスタイルホテル PJ", en: "Naka-Karuizawa Station-front Lifestyle Hotel" },
@@ -219,7 +219,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0013",
+      id: "dhp0040",
       category: "ongoing",
       image: "",
       name: { ja: "熱海 木宮駅前 スモールラグジュアリーホテル PJ", en: "Atami Kinomiya Station-front Small Luxury Hotel" },
@@ -236,7 +236,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0014",
+      id: "dhp0039",
       category: "ongoing",
       image: "",
       name: { ja: "函館 KOKOホテル PJ", en: "Hakodate KOKO Hotel" },
@@ -253,7 +253,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0015",
+      id: "dhp0038",
       category: "ongoing",
       image: "",
       name: { ja: "「由布院 森のテラス」オーベルジュ PJ", en: "\"Yufuin Mori no Terrace\" Auberge" },
@@ -270,7 +270,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0016",
+      id: "dhp0037",
       category: "ongoing",
       image: "",
       name: { ja: "「七色の風」オーベルジュ PJ", en: "\"Nanairo no Kaze\" Auberge" },
@@ -287,7 +287,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0017",
+      id: "dhp0036",
       category: "ongoing",
       image: "",
       name: { ja: "旧軽井沢倶楽部 倶楽部ハウス PJ", en: "Kyu-Karuizawa Club – Clubhouse" },
@@ -304,7 +304,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0018",
+      id: "dhp0035",
       category: "ongoing",
       image: "",
       name: { ja: "軽井沢南原 ブランデッドリゾートレジデンス PJ", en: "Karuizawa Minamihara Branded Resort Residence" },
@@ -321,7 +321,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0019",
+      id: "dhp0034",
       category: "ongoing",
       image: "",
       name: { ja: "奄美大島 龍郷リゾートホテル開発 PJ", en: "Amami Oshima Tatsugo Resort Hotel" },
@@ -338,7 +338,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0020",
+      id: "dhp0033",
       category: "ongoing",
       image: "",
       name: { ja: "和歌山白浜町 古ホテル再開発 PJ", en: "Wakayama Shirahama Former Hotel Redevelopment" },
@@ -355,7 +355,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0021",
+      id: "dhp0032",
       category: "ongoing",
       image: "",
       name: { ja: "和歌山白浜町 廃ホテル再開発 PJ", en: "Wakayama Shirahama Abandoned Hotel Redevelopment" },
@@ -372,7 +372,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0022",
+      id: "dhp0031",
       category: "ongoing",
       image: "",
       name: { ja: "熱海リゾートホテル PJ（100室）", en: "Atami Resort Hotel (100 rooms)" },
@@ -389,7 +389,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0023",
+      id: "dhp0030",
       category: "ongoing",
       image: "",
       name: { ja: "飛騨高山リゾートホテル PJ", en: "Hida-Takayama Resort Hotel" },
@@ -406,7 +406,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0024",
+      id: "dhp0029",
       category: "ongoing",
       image: "",
       name: { ja: "奄美大島リゾートホテル PJ（ヴィラ82棟）", en: "Amami Oshima Resort Hotel (82 villas)" },
@@ -423,7 +423,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0025",
+      id: "dhp0028",
       category: "ongoing",
       image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80",
       name: { ja: "六本木4丁目ホテル PJ", en: "Roppongi 4-chome Hotel" },
@@ -443,7 +443,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0026",
+      id: "dhp0027",
       category: "ongoing",
       image: "",
       name: { ja: "旧軽井沢 高級リゾートレジデンス PJ", en: "Kyu-Karuizawa Luxury Resort Residence" },
@@ -460,7 +460,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0027",
+      id: "dhp0026",
       category: "ongoing",
       image: "",
       name: { ja: "宮古島砂山リゾートホテル PJ②", en: "Miyakojima Sunayama Resort Hotel II" },
@@ -477,7 +477,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0028",
+      id: "dhp0025",
       category: "ongoing",
       image: "",
       name: { ja: "宮古島砂山リゾートヴィラ PJ③", en: "Miyakojima Sunayama Resort Villa III" },
@@ -494,7 +494,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0029",
+      id: "dhp0024",
       category: "ongoing",
       image: "",
       name: { ja: "宮古島砂山リゾートホテル PJ④", en: "Miyakojima Sunayama Resort Hotel IV" },
@@ -511,7 +511,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0030",
+      id: "dhp0023",
       category: "ongoing",
       image: "",
       name: { ja: "大阪宗右衛門町ホテル PJ", en: "Osaka Soemoncho Hotel" },
@@ -528,7 +528,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0031",
+      id: "dhp0022",
       category: "ongoing",
       image: "",
       name: { ja: "箱根ランド リゾートホテル PJ", en: "Hakone Land Resort Hotel" },
@@ -545,7 +545,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0032",
+      id: "dhp0021",
       category: "ongoing",
       image: "",
       name: { ja: "恩納村瀬良垣リゾートホテル PJ", en: "Onna Seragaki Resort Hotel" },
@@ -562,7 +562,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0033",
+      id: "dhp0020",
       category: "ongoing",
       image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80",
       name: { ja: "鳥取砂丘リゾートホテル PJ", en: "Tottori Sand Dunes Resort Hotel" },
@@ -581,7 +581,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0034",
+      id: "dhp0019",
       category: "ongoing",
       image: "",
       name: { ja: "奄美大島リゾートホテル PJ（20室・自社GP）", en: "Amami Oshima Resort Hotel (20 rooms, GP)" },
@@ -598,7 +598,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0035",
+      id: "dhp0018",
       category: "ongoing",
       image: "",
       name: { ja: "鳥取県大山ホテル ミニPJ", en: "Tottori Daisen Mini Hotel" },
@@ -615,7 +615,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0036",
+      id: "dhp0017",
       category: "ongoing",
       image: "",
       name: { ja: "奈良市三条ホテル PJ", en: "Nara Sanjo Hotel" },
@@ -632,7 +632,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0037",
+      id: "dhp0016",
       category: "ongoing",
       image: "",
       name: { ja: "石垣島川平 ミニホテル PJ", en: "Ishigaki Kabira Mini Hotel" },
@@ -649,7 +649,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0038",
+      id: "dhp0015",
       category: "ongoing",
       image: "",
       name: { ja: "石垣島リゾートヴィラ PJ", en: "Ishigaki Resort Villa" },
@@ -666,7 +666,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0039",
+      id: "dhp0014",
       category: "ongoing",
       image: "",
       name: { ja: "平戸グランピング PJ", en: "Hirado Glamping" },
@@ -683,7 +683,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0040",
+      id: "dhp0013",
       category: "ongoing",
       image: "",
       name: { ja: "沖縄美ら海ヴィラ PJ", en: "Okinawa Churaumi Villa" },
@@ -700,7 +700,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0041",
+      id: "dhp0012",
       category: "ongoing",
       image: "",
       name: { ja: "香川県小豆島コテージ PJ", en: "Kagawa Shodoshima Cottage" },
@@ -717,7 +717,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0042",
+      id: "dhp0011",
       category: "completed",
       image: "",
       name: { ja: "奈良春日「鹿のや」PJ", en: "Nara Kasuga \"Shika-no-ya\"" },
@@ -734,7 +734,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0043",
+      id: "dhp0010",
       category: "completed",
       image: "",
       name: { ja: "軽井沢追分リゾートホテル PJ", en: "Karuizawa Oiwake Resort Hotel" },
@@ -751,7 +751,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0044",
+      id: "dhp0009",
       category: "completed",
       image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
       name: { ja: "宮古島砂山リゾートホテル PJ①", en: "Miyakojima Sunayama Resort Hotel I" },
@@ -773,7 +773,7 @@ const SITE_DATA = {
       ]
     },
     {
-      id: "dhp0045",
+      id: "dhp0008",
       category: "completed",
       image: "",
       name: { ja: "軽井沢リゾートホテル PJ", en: "Karuizawa Resort Hotel" },
@@ -790,7 +790,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0046",
+      id: "dhp0007",
       category: "completed",
       image: "",
       name: { ja: "名古屋則武ホテル PJ", en: "Nagoya Noritake Hotel" },
@@ -807,7 +807,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0047",
+      id: "dhp0006",
       category: "completed",
       image: "",
       name: { ja: "大阪曽根崎ホテル PJ", en: "Osaka Sonezaki Hotel" },
@@ -824,7 +824,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0048",
+      id: "dhp0005",
       category: "completed",
       image: "",
       name: { ja: "大阪天満ホテル PJ", en: "Osaka Tenma Hotel" },
@@ -841,7 +841,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0049",
+      id: "dhp0004",
       category: "completed",
       image: "",
       name: { ja: "名古屋つちやホテル PJ", en: "Nagoya Tsuchiya Hotel" },
@@ -858,7 +858,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0050",
+      id: "dhp0003",
       category: "completed",
       image: "",
       name: { ja: "名古屋名駅南4丁目 PJ", en: "Nagoya Meieki-minami 4-chome" },
@@ -875,7 +875,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0051",
+      id: "dhp0002",
       category: "completed",
       image: "",
       name: { ja: "名古屋納谷橋ホテル PJ", en: "Nagoya Nayabashi Hotel" },
@@ -892,7 +892,7 @@ const SITE_DATA = {
       documents: []
     },
     {
-      id: "dhp0052",
+      id: "dhp0001",
       category: "completed",
       image: "",
       name: { ja: "大阪此花区 USJホテル PJ", en: "Osaka Konohana USJ Hotel" },
