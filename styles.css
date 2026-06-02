@@ -156,14 +156,53 @@ a { color: inherit; }
 }
 .hero-stats { display: flex; gap: 48px; margin-top: 48px; flex-wrap: wrap; }
 
-/* ---- Hero text entrance motion ---- */
-.hero h1 .line { display: block; overflow: hidden; padding-bottom: 0.04em; }
-.hero h1 .line-inner { display: block; }
-.has-js .hero h1 .line-inner { transform: translateY(108%); }
-.has-js .hero h1 .line.in .line-inner { animation: lineRise 0.95s var(--ease) forwards; }
-.has-js .hero h1 .line.in:nth-child(2) .line-inner { animation-delay: 0.1s; }
-.has-js .hero h1 .line.in:nth-child(3) .line-inner { animation-delay: 0.2s; }
-@keyframes lineRise { from { transform: translateY(108%); } to { transform: translateY(0); } }
+/* ---- Hero headline motion（ダイナミックな入場 + 継続シャイン）---- */
+.hero h1 .line { display: block; padding-bottom: 0.04em; }
+.hero h1 .line-inner { display: block; transform-origin: left bottom; }
+/* 入場前の初期状態（JS時のみ） */
+.has-js .hero h1 .line-inner {
+  opacity: 0;
+  transform: translateY(56px) scale(0.94);
+  filter: blur(8px);
+}
+/* せり上がり＋わずかな弾み（back系イージング） */
+.has-js .hero h1 .line.in .line-inner {
+  animation: linePop 0.95s cubic-bezier(0.18, 0.92, 0.24, 1.12) both;
+}
+.has-js .hero h1 .line.in:nth-child(2) .line-inner { animation-delay: 0.14s; }
+.has-js .hero h1 .line.in:nth-child(3) .line-inner { animation-delay: 0.28s; }
+@keyframes linePop {
+  0%   { opacity: 0; transform: translateY(56px) scale(0.94); filter: blur(8px); }
+  55%  { opacity: 1; filter: blur(0); }
+  78%  { transform: translateY(-6px) scale(1.012); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+/* 文字を横切る金色のシャイン（対応ブラウザのみ・テキストはグラデーション塗り） */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .has-js .hero h1 .line-inner {
+    background-image: linear-gradient(105deg,
+      #eef0f3 0%, #eef0f3 36%, #ffffff 45%, #e7cf95 50%, #ffffff 55%, #eef0f3 64%, #eef0f3 100%);
+    background-size: 250% 100%;
+    background-position: 165% 0;
+    background-repeat: no-repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .has-js .hero h1 .line.in .line-inner {
+    animation: linePop 0.95s cubic-bezier(0.18, 0.92, 0.24, 1.12) both,
+               sheen 4.8s ease-in-out infinite;
+    animation-delay: 0s, 1.5s;
+  }
+  .has-js .hero h1 .line.in:nth-child(2) .line-inner { animation-delay: 0.14s, 1.65s; }
+  .has-js .hero h1 .line.in:nth-child(3) .line-inner { animation-delay: 0.28s, 1.8s; }
+}
+@keyframes sheen {
+  0%        { background-position: 175% 0; }
+  45%, 100% { background-position: -75% 0; }
+}
 
 .has-js .hero .eyebrow,
 .has-js .hero-lead,
@@ -180,7 +219,12 @@ a { color: inherit; }
   .has-js .hero h1 .line-inner,
   .has-js .hero .eyebrow,
   .has-js .hero-lead,
-  .has-js .hero-stats { transform: none; opacity: 1; animation: none; }
+  .has-js .hero-stats { transform: none; opacity: 1; filter: none; animation: none; }
+  .has-js .hero h1 .line-inner {
+    background-image: none;
+    -webkit-text-fill-color: var(--text);
+    color: var(--text);
+  }
 }
 .stat { display: flex; flex-direction: column; }
 .stat-num { font-size: 2.4rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
