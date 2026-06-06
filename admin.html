@@ -269,7 +269,7 @@
         </div>
         <div class="field">
           <label for="gh-branch">ブランチ</label>
-          <input id="gh-branch" placeholder="main" />
+          <input id="gh-branch" placeholder="claude/dhp-bilingual-site-2ovfS" />
         </div>
       </div>
       <div class="grid2">
@@ -460,7 +460,7 @@
 
     async function uploadImageFile(file) {
       const repoInfo = ghParseRepo($("gh-repo").value);
-      const branch = $("gh-branch").value.trim() || "main";
+      const branch = $("gh-branch").value.trim() || DEFAULT_BRANCH;
       const token = $("gh-token").value.trim();
       if (!repoInfo) throw new Error("「GitHub に保存」のリポジトリ（owner/repo）を入力してください。");
       if (!token) throw new Error("「GitHub に保存」のアクセストークン（PAT）を入力してください。");
@@ -671,10 +671,10 @@
       if (editing) {
         const i = state.projects.findIndex((p) => p.id === editing);
         state.projects[i] = data;
-        showMsg($("formMsg"), "更新しました。", true);
+        showMsg($("formMsg"), "更新しました（まだ下書き）。「GitHub に保存」で反映してください。", true);
       } else {
         state.projects.push(data);
-        showMsg($("formMsg"), "追加しました。", true);
+        showMsg($("formMsg"), "追加しました（まだ下書き）。「GitHub に保存」で反映してください。", true);
       }
       renderRows();
       resetForm();
@@ -780,6 +780,8 @@ if (typeof window !== "undefined") {
     // ===== GitHub に保存（Contents API で直接コミット）=====
     const GH_CFG_KEY = "dhp-gh-config";
     const GH_TOKEN_KEY = "dhp-gh-token";
+    // このサイトの既定（Vercelが配信する）ブランチ。保存先の初期値に使う。
+    const DEFAULT_BRANCH = "claude/dhp-bilingual-site-2ovfS";
 
     // UTF-8 文字列を base64 に（日本語対応）
     function utf8ToBase64(str) {
@@ -799,7 +801,8 @@ if (typeof window !== "undefined") {
       let cfg = {};
       try { cfg = JSON.parse(localStorage.getItem(GH_CFG_KEY) || "{}"); } catch (e) {}
       $("gh-repo").value   = cfg.repo   || "dhpyenomoto/dhphome";
-      $("gh-branch").value = cfg.branch || "main";
+      // 旧既定値 "main" は存在しないため、正しいブランチへ自動補正
+      $("gh-branch").value = (cfg.branch && cfg.branch !== "main") ? cfg.branch : DEFAULT_BRANCH;
       $("gh-path").value   = cfg.path   || "data.js";
       $("gh-msg").value    = cfg.msg    || "Update data.js via admin";
       const tok = sessionStorage.getItem(GH_TOKEN_KEY) || localStorage.getItem(GH_TOKEN_KEY) || "";
@@ -831,7 +834,7 @@ if (typeof window !== "undefined") {
 
     async function githubSave() {
       const repoInfo = ghParseRepo($("gh-repo").value);
-      const branch = $("gh-branch").value.trim() || "main";
+      const branch = $("gh-branch").value.trim() || DEFAULT_BRANCH;
       const path = $("gh-path").value.trim() || "data.js";
       const token = $("gh-token").value.trim();
       const message = $("gh-msg").value.trim() || "Update data.js via admin";
@@ -883,9 +886,10 @@ if (typeof window !== "undefined") {
         showMsg($("gh-msg-out"), "保存しました。", true);
         const commit = putJson.commit || {};
         const url = (commit.html_url) || (putJson.content && putJson.content.html_url) || "";
-        resultEl.innerHTML = url
-          ? `コミット完了: <a href="${url}" target="_blank" rel="noopener">${(commit.sha || "").slice(0, 7) || "コミットを表示"}</a>`
-          : "コミットが完了しました。";
+        resultEl.innerHTML =
+          `<strong>${escAttr(branch)}</strong> ブランチの <code>${escAttr(path)}</code> にコミットしました`
+          + (url ? `（<a href="${url}" target="_blank" rel="noopener">${(commit.sha || "").slice(0, 7) || "表示"}</a>）` : "")
+          + `。<br>公開サイトは Vercel の再デプロイ後（数十秒）に反映されます。表示が変わらない時は<strong>ブラウザを再読み込み（強制更新）</strong>してください。`;
       } catch (err) {
         showMsg($("gh-msg-out"), "エラー", false);
         resultEl.innerHTML = `<span style="color:var(--danger)">${String(err.message || err)}</span>`;
