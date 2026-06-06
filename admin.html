@@ -114,6 +114,43 @@
   </header>
 
   <div class="wrap">
+    <!-- ===== Supabase（データベース）===== -->
+    <div class="panel" id="dbPanel" style="border-color: var(--accent);">
+      <h2>データベース（Supabase）</h2>
+      <p class="hint" id="dbStatus">確認中…</p>
+
+      <!-- ログインフォーム（DB設定済み・未ログイン時に表示）-->
+      <div id="dbLoginBox" style="display:none">
+        <div class="grid2">
+          <div class="field"><label for="db-email">メールアドレス</label><input id="db-email" type="email" autocomplete="username" /></div>
+          <div class="field"><label for="db-pass">パスワード</label><input id="db-pass" type="password" autocomplete="current-password" /></div>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-primary" id="db-login">ログイン</button>
+          <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted)">
+            <input type="checkbox" id="db-remember" style="width:auto" /> この端末でログイン状態を保持
+          </label>
+          <span class="msg" id="db-msg"></span>
+        </div>
+      </div>
+
+      <!-- ログイン後の操作 -->
+      <div id="dbActionBox" style="display:none">
+        <div class="btn-row">
+          <button type="button" class="btn btn-ghost" id="db-reload">DBから再読込</button>
+          <button type="button" class="btn btn-ghost" id="db-migrate">現在の data.js の内容を DB に取り込む（初期投入）</button>
+          <button type="button" class="btn btn-ghost" id="db-logout">ログアウト</button>
+          <span class="msg" id="db-msg2"></span>
+        </div>
+        <p class="hint" style="margin:8px 0 0">DBモードでは、案件の追加・編集・削除は<strong>即データベースに保存</strong>され、公開ページを再読み込みすると反映されます（Git・トークン不要）。</p>
+      </div>
+
+      <p class="hint" id="dbSetupNote" style="display:none">
+        まだ未設定です。<code>supabase-config.js</code> に URL と anon キーを設定すると DBモードが使えます。
+        手順は <code>SUPABASE-SETUP.md</code> を参照してください。設定するまでは従来どおり data.js / GitHub 保存で運用できます。
+      </p>
+    </div>
+
     <!-- ===== 案件フォーム ===== -->
     <div class="panel" id="formPanel">
       <h2 id="formTitle">案件を追加</h2>
@@ -326,6 +363,8 @@
     </div>
   </div>
 
+  <script src="supabase-config.js"></script>
+  <script src="db.js"></script>
   <script src="data.js"></script>
   <script>
     // SITE_DATA を編集用にディープコピー（元データは破壊しない）
@@ -662,8 +701,12 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    function deleteProject(id) {
+    async function deleteProject(id) {
       if (!confirm("案件「" + id + "」を削除します。よろしいですか？")) return;
+      if (dbMode()) {
+        try { await DB.deleteProject(id); }
+        catch (e) { alert("DBからの削除に失敗しました: " + (e.message || e)); return; }
+      }
       state.projects = state.projects.filter((x) => x.id !== id);
       if ($("editId").value === id) resetForm();
       renderRows();
@@ -683,10 +726,10 @@
       if (!data.name.en) data.name.en = data.name.ja; // 英語名が空なら日本語で代替
       if (editing) {
         state.projects[state.projects.findIndex((p) => p.id === editing)] = data;
-        return { ok: true, editing: true };
+        return { ok: true, editing: true, id: data.id };
       }
       state.projects.push(data);
-      return { ok: true, editing: false };
+      return { ok: true, editing: false, id: data.id };
     }
 
     // 英語の空欄を自動翻訳（トグルON時）
@@ -697,17 +740,27 @@
       }
     }
 
-    // 「下書きに追加」（メモリ上のみ）
-    $("projectForm").addEventListener("submit", (e) => {
+    // 「下書きに追加」（DBモードでは即DB保存、それ以外はメモリ上のみ）
+    $("projectForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const res = applyFormToState();
       if (!res.ok) { showMsg($("formMsg"), res.msg, false); return; }
-      showMsg($("formMsg"), (res.editing ? "更新" : "追加") + "しました（下書き）。「保存して公開」または「GitHub に保存」で反映してください。", true);
       renderRows();
-      resetForm();
+      if (dbMode()) {
+        const proj = state.projects[state.projects.findIndex((p) => p.id === res.id)] || readForm();
+        showMsg($("formMsg"), "DBに保存中…", true);
+        try {
+          await persistProjectToDb(proj);
+          showMsg($("formMsg"), (res.editing ? "更新" : "追加") + "してDBに保存しました（公開ページ再読込で反映）。", true);
+          resetForm();
+        } catch (err) { showMsg($("formMsg"), "DB保存に失敗: " + (err.message || err), false); }
+      } else {
+        showMsg($("formMsg"), (res.editing ? "更新" : "追加") + "しました（下書き）。「保存して公開」または「GitHub に保存」で反映してください。", true);
+        resetForm();
+      }
     });
 
-    // 「保存して公開」：英語自動翻訳 → state反映 → GitHubへコミットまで一括
+    // 「保存して公開」：英語自動翻訳 → state反映 →（DBモード=DB保存／それ以外=GitHubコミット）
     $("publishBtn").addEventListener("click", async () => {
       if (publishing) return;
       publishing = true;
@@ -718,13 +771,23 @@
         const res = applyFormToState();
         if (!res.ok) { showMsg($("formMsg"), res.msg, false); return; }
         renderRows();
-        showMsg($("formMsg"), (res.editing ? "更新" : "追加") + "しました。GitHub にコミット中…", true);
-        const ok = await githubSave();
-        if (ok) {
-          showMsg($("formMsg"), "保存して公開しました。Vercel 反映までしばらくお待ちください。", true);
-          resetForm();
+        if (dbMode()) {
+          showMsg($("formMsg"), "DBに保存中…", true);
+          const proj = state.projects[state.projects.findIndex((p) => p.id === res.id)];
+          try {
+            await persistProjectToDb(proj);
+            showMsg($("formMsg"), "DBに保存しました（公開ページ再読込で反映）。", true);
+            resetForm();
+          } catch (err) { showMsg($("formMsg"), "DB保存に失敗: " + (err.message || err), false); }
         } else {
-          showMsg($("formMsg"), "コミットに失敗しました（下のメッセージを確認）。内容は下書きとして保持しています。", false);
+          showMsg($("formMsg"), (res.editing ? "更新" : "追加") + "しました。GitHub にコミット中…", true);
+          const ok = await githubSave();
+          if (ok) {
+            showMsg($("formMsg"), "保存して公開しました。Vercel 反映までしばらくお待ちください。", true);
+            resetForm();
+          } else {
+            showMsg($("formMsg"), "コミットに失敗しました（下のメッセージを確認）。内容は下書きとして保持しています。", false);
+          }
         }
       } finally {
         btn.disabled = false;
@@ -1048,12 +1111,97 @@ if (typeof window !== "undefined") {
       });
     }
 
+    // ===== Supabase（データベース）モード =====
+    function dbConfigured() { return !!(window.DB && DB.configured()); }
+    function dbMode() { return dbConfigured() && DB.loggedIn(); }
+
+    function refreshDbPanel() {
+      const status = $("dbStatus");
+      const loginBox = $("dbLoginBox");
+      const actionBox = $("dbActionBox");
+      const setupNote = $("dbSetupNote");
+      loginBox.style.display = "none";
+      actionBox.style.display = "none";
+      setupNote.style.display = "none";
+      if (!dbConfigured()) {
+        status.innerHTML = "未接続（<code>data.js</code> / GitHub 保存で運用中）。";
+        setupNote.style.display = "";
+      } else if (!DB.loggedIn()) {
+        status.innerHTML = "接続済み。編集するには<strong>ログイン</strong>してください。";
+        loginBox.style.display = "";
+      } else {
+        status.innerHTML = "<strong>DBモードで動作中</strong>：編集は即データベースに保存され、公開ページに反映されます。";
+        actionBox.style.display = "";
+      }
+    }
+
+    // state の並び順で sort_order を付けて1件保存
+    async function persistProjectToDb(proj) {
+      const idx = state.projects.findIndex((p) => p.id === proj.id);
+      await DB.upsertProject(proj, idx < 0 ? state.projects.length : idx + 1);
+    }
+
+    async function loadFromDb() {
+      const projects = await DB.fetchProjects();
+      state.projects = projects;
+      renderRows();
+      resetForm();
+    }
+
+    $("db-login").addEventListener("click", async () => {
+      const email = $("db-email").value.trim();
+      const pass = $("db-pass").value;
+      if (!email || !pass) { showMsg($("db-msg"), "メールとパスワードを入力してください。", false); return; }
+      const btn = $("db-login"); btn.disabled = true;
+      showMsg($("db-msg"), "ログイン中…", true);
+      try {
+        await DB.login(email, pass, $("db-remember").checked);
+        $("db-pass").value = "";
+        showMsg($("db-msg"), "ログインしました。", true);
+        refreshDbPanel();
+        try { await loadFromDb(); } catch (e) { /* DBが空ならそのまま */ }
+        showMsg($("db-msg2"), "DBから読み込みました。", true);
+      } catch (e) {
+        showMsg($("db-msg"), String(e.message || e), false);
+      } finally { btn.disabled = false; }
+    });
+
+    $("db-logout").addEventListener("click", () => {
+      DB.logout();
+      refreshDbPanel();
+      showMsg($("db-msg"), "ログアウトしました。", true);
+    });
+
+    $("db-reload").addEventListener("click", async () => {
+      showMsg($("db-msg2"), "読込中…", true);
+      try { await loadFromDb(); showMsg($("db-msg2"), "DBから再読込しました。", true); }
+      catch (e) { showMsg($("db-msg2"), String(e.message || e), false); }
+    });
+
+    $("db-migrate").addEventListener("click", async () => {
+      if (!confirm("現在の一覧（" + state.projects.length + "件）を Supabase に取り込みます。よろしいですか？")) return;
+      const btn = $("db-migrate"); btn.disabled = true;
+      showMsg($("db-msg2"), "取り込み中…", true);
+      try {
+        await DB.upsertMany(state.projects);
+        await loadFromDb();
+        showMsg($("db-msg2"), "DBに取り込みました（以後はDBが正データです）。", true);
+      } catch (e) {
+        showMsg($("db-msg2"), String(e.message || e), false);
+      } finally { btn.disabled = false; }
+    });
+
     // ===== 初期化 =====
     fillCategorySelect();
     renderRows();
     resetForm();        // 新規追加フォームに次のNo.（dhp連番）を自動表示
     loadGhConfig();
     attachTranslate();
+    refreshDbPanel();
+    // ログイン済みなら起動時にDBから読み込む
+    if (dbMode()) {
+      loadFromDb().catch((e) => console.warn("DB初期読込に失敗", e));
+    }
   </script>
 </body>
 </html>

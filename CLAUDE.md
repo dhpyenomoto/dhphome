@@ -14,6 +14,10 @@
 | `admin.html` | 案件の追加・編集・削除を行い、`data.js` を再生成して書き出す管理画面 |
 | `project.html` | 案件詳細ページ。`project.html?id=p001` の形式で `data.js` から1件を表示（所在地・詳細・写真・ストーリー・資料ダウンロード） |
 | `styles.css` | 公開ページ・詳細ページの共通スタイル |
+| `supabase-config.js` | Supabase 接続設定（任意）。`url`/`anonKey` を入れると DB運用が有効化 |
+| `db.js` | Supabase REST/Auth への薄いクライアント（外部ライブラリ不要・fetchのみ）。公開ページ/adminが利用 |
+| `supabase-schema.sql` | `projects` テーブル + RLS の定義（Supabase の SQL Editor に貼る） |
+| `SUPABASE-SETUP.md` | データベース運用の手順書 |
 | `images/` | プロジェクト写真の格納庫。admin から端末/iPad の写真を直接アップロード可（`images/README.md`） |
 | `downloads/` | ダウンロード資料（PDF等）の格納庫。`downloads/README.md` に追加手順 |
 | `CLAUDE.md`  | 本ドキュメント（ルールとデータ構造） |
@@ -114,6 +118,20 @@ const SITE_DATA = {
 - 翻訳は無料API **MyMemory**（`api.mymemory.translated.net`・キー不要・CORS対応）を
   ブラウザから直接呼び出します。**入力テキストは外部サービスに送信**されます。
   固有名詞は精度が落ちるため、結果は必ず確認・修正してください（既存の英語は上書きしません）。
+
+## データベース運用（任意・Supabase）
+
+`supabase-config.js` に `url` と `anonKey` を設定すると、**DBモード**になります。
+
+- **公開ページ**（`index.html` / `project.html`）は起動時に `DB.fetchProjects()` で
+  Supabase から案件を取得します（`window.SITE_DATA.projects` を上書き）。
+  **未設定または取得失敗時は `data.js` にフォールバック**します（壊れない）。
+- **管理画面**（`admin.html`）は、上部の Supabase パネルで**ログイン**すると DBモードになり、
+  追加・編集・削除が**即データベースに保存**されます（Git・トークン・再デプロイ不要）。
+  - 初回は「現在の `data.js` を DB に取り込む（初期投入）」で 52件を移行します。
+- 外部ライブラリは使わず、`db.js` が `fetch` で Supabase の REST(`/rest/v1`)・
+  Auth(`/auth/v1`) を直接呼びます。anon キーは公開可。書き込みは RLS とログインで保護します。
+- 詳細手順は `SUPABASE-SETUP.md`、テーブル定義は `supabase-schema.sql` を参照。
 
 ## 多言語表示（i18n）の方針
 

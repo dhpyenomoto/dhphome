@@ -32,6 +32,8 @@
     </div>
   </footer>
 
+  <script src="supabase-config.js"></script>
+  <script src="db.js"></script>
   <script src="data.js"></script>
   <script>
     const UI_TEXT = {
@@ -231,7 +233,18 @@
       b.addEventListener("click", () => setLang(b.getAttribute("data-lang"))));
     document.getElementById("year").textContent = new Date().getFullYear();
     initScrollHeader();
-    setLang(currentLang);
+
+    // データ読み込み：Supabase が設定されていれば DB から、無ければ data.js を使用
+    async function boot() {
+      if (window.DB && DB.configured()) {
+        try {
+          const projects = await DB.fetchProjects();
+          if (projects && projects.length) SITE_DATA.projects = projects;
+        } catch (e) { console.warn("DB読込に失敗したため data.js を使用します", e); }
+      }
+      setLang(currentLang);
+    }
+    boot();
   </script>
 </body>
 </html>
