@@ -95,6 +95,15 @@
     .translate-bar .tr-toggle { display: flex; align-items: center; gap: 7px; font-size: 0.86rem; font-weight: 600; }
     .translate-bar .tr-toggle input { width: auto; }
     input.translating, textarea.translating { background-image: linear-gradient(90deg, rgba(199,168,106,0.18), rgba(199,168,106,0.05)); }
+    details.advanced { border: 1px solid var(--border); border-radius: 8px; padding: 0 14px; margin: 8px 0 4px; background: rgba(255,255,255,0.02); }
+    details.advanced > summary {
+      cursor: pointer; list-style: none; padding: 13px 2px; font-size: 0.82rem; font-weight: 600;
+      color: var(--accent); letter-spacing: 0.04em; user-select: none;
+    }
+    details.advanced > summary::-webkit-details-marker { display: none; }
+    details.advanced > summary::before { content: "▸ "; color: var(--muted); }
+    details.advanced[open] > summary::before { content: "▾ "; }
+    details.advanced[open] { padding-bottom: 12px; }
     @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .wrap { padding: 24px 16px; } }
   </style>
 </head>
@@ -144,7 +153,7 @@
         <p class="legend">名称 / Name</p>
         <div class="grid2">
           <div class="field"><label for="f-name-ja">日本語 *</label><input id="f-name-ja" required /></div>
-          <div class="field"><label for="f-name-en">English *</label><input id="f-name-en" required /></div>
+          <div class="field"><label for="f-name-en">English（自動翻訳可）</label><input id="f-name-en" /></div>
         </div>
 
         <p class="legend">所在地 / Location</p>
@@ -175,6 +184,9 @@
           <div class="field"><label for="f-year">年（数値・任意）</label><input id="f-year" type="number" placeholder="例: 2026" /></div>
           <div class="field"><label for="f-area">客室・規模（任意）</label><input id="f-area" placeholder="例: 108室 / 108 rooms" /></div>
         </div>
+
+        <details class="advanced">
+        <summary>詳細項目（任意）— 土地規模・計画概要・ストーリー・写真・資料</summary>
 
         <div class="field">
           <label for="f-landArea">土地規模（任意）</label>
@@ -232,12 +244,15 @@
           </div>
           <p class="hint" style="margin:6px 0 0">ファイルは <code>downloads/</code> に置く（またはコミット）か、外部URLを指定してください。詳しくは <code>downloads/README.md</code>。</p>
         </div>
+        </details>
 
         <div class="btn-row">
-          <button type="submit" class="btn btn-primary" id="submitBtn">案件を追加</button>
+          <button type="button" class="btn btn-primary" id="publishBtn">保存して公開（GitHubにコミット）</button>
+          <button type="submit" class="btn btn-ghost" id="submitBtn">下書きに追加</button>
           <button type="button" class="btn btn-ghost" id="resetBtn">クリア</button>
           <span class="msg" id="formMsg"></span>
         </div>
+        <p class="hint" style="margin:8px 0 0">「保存して公開」は、英語の空欄を自動翻訳し、GitHub にコミットまで一括で行います（要トークン）。複数案件をまとめて入れる場合は「下書きに追加」を繰り返し、最後に下の「GitHub に保存」で一括コミットも可能です。</p>
       </form>
     </div>
 
@@ -334,6 +349,7 @@
     // ===== 写真・資料の編集用バッファ =====
     let formGallery = [];   // [ "url", ... ]
     let formDocuments = []; // [ { ja, en, file }, ... ]
+    let publishing = false; // 「保存して公開」二重実行防止
     const galleryPreview = {}; // { "images/xxx.jpg": "data:image/...." } アップロード直後のプレビュー用
 
     function escAttr(s) {
@@ -654,31 +670,68 @@
     }
 
     // ===== 追加 / 更新 =====
-    $("projectForm").addEventListener("submit", (e) => {
-      e.preventDefault();
+    // フォーム内容を検証して state に反映（id・カテゴリー・名称(日本語)が必須）
+    function applyFormToState() {
       const editing = $("editId").value;
       const data = editing ? { ...readForm(), id: editing } : readForm();
-
-      if (!data.id || !data.category || !data.name.ja || !data.name.en) {
-        showMsg($("formMsg"), "ID・カテゴリー・名称(JA/EN)は必須です。", false);
-        return;
+      if (!data.id || !data.category || !data.name.ja) {
+        return { ok: false, msg: "ID・カテゴリー・名称(日本語)は必須です。" };
       }
       if (!editing && state.projects.some((p) => p.id === data.id)) {
-        showMsg($("formMsg"), "そのIDは既に使われています。", false);
-        return;
+        return { ok: false, msg: "そのIDは既に使われています。" };
       }
-
+      if (!data.name.en) data.name.en = data.name.ja; // 英語名が空なら日本語で代替
       if (editing) {
-        const i = state.projects.findIndex((p) => p.id === editing);
-        state.projects[i] = data;
-        showMsg($("formMsg"), "更新しました（まだ下書き）。「GitHub に保存」で反映してください。", true);
-      } else {
-        state.projects.push(data);
-        showMsg($("formMsg"), "追加しました（まだ下書き）。「GitHub に保存」で反映してください。", true);
+        state.projects[state.projects.findIndex((p) => p.id === editing)] = data;
+        return { ok: true, editing: true };
       }
+      state.projects.push(data);
+      return { ok: true, editing: false };
+    }
+
+    // 英語の空欄を自動翻訳（トグルON時）
+    async function autoTranslateEmpties() {
+      if (!$("autoTranslate").checked) return;
+      for (const [jaId, enId] of TRANSLATE_PAIRS) {
+        if ($(jaId).value.trim() && !$(enId).value.trim()) await fillTranslate(jaId, enId, false);
+      }
+    }
+
+    // 「下書きに追加」（メモリ上のみ）
+    $("projectForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const res = applyFormToState();
+      if (!res.ok) { showMsg($("formMsg"), res.msg, false); return; }
+      showMsg($("formMsg"), (res.editing ? "更新" : "追加") + "しました（下書き）。「保存して公開」または「GitHub に保存」で反映してください。", true);
       renderRows();
       resetForm();
     });
+
+    // 「保存して公開」：英語自動翻訳 → state反映 → GitHubへコミットまで一括
+    $("publishBtn").addEventListener("click", async () => {
+      if (publishing) return;
+      publishing = true;
+      const btn = $("publishBtn");
+      btn.disabled = true;
+      try {
+        await autoTranslateEmpties();
+        const res = applyFormToState();
+        if (!res.ok) { showMsg($("formMsg"), res.msg, false); return; }
+        renderRows();
+        showMsg($("formMsg"), (res.editing ? "更新" : "追加") + "しました。GitHub にコミット中…", true);
+        const ok = await githubSave();
+        if (ok) {
+          showMsg($("formMsg"), "保存して公開しました。Vercel 反映までしばらくお待ちください。", true);
+          resetForm();
+        } else {
+          showMsg($("formMsg"), "コミットに失敗しました（下のメッセージを確認）。内容は下書きとして保持しています。", false);
+        }
+      } finally {
+        btn.disabled = false;
+        publishing = false;
+      }
+    });
+
     $("resetBtn").addEventListener("click", resetForm);
 
     // ===== data.js 生成 =====
@@ -841,8 +894,8 @@ if (typeof window !== "undefined") {
       const resultEl = $("gh-result");
       resultEl.textContent = "";
 
-      if (!repoInfo) { showMsg($("gh-msg-out"), "リポジトリは owner/repo 形式で入力してください。", false); return; }
-      if (!token)    { showMsg($("gh-msg-out"), "アクセストークン（PAT）を入力してください。", false); return; }
+      if (!repoInfo) { showMsg($("gh-msg-out"), "リポジトリは owner/repo 形式で入力してください。", false); return false; }
+      if (!token)    { showMsg($("gh-msg-out"), "アクセストークン（PAT）を入力してください。「GitHub に保存」パネルで設定してください。", false); return false; }
 
       persistGhConfig();
       const content = buildDataJs();
@@ -890,9 +943,11 @@ if (typeof window !== "undefined") {
           `<strong>${escAttr(branch)}</strong> ブランチの <code>${escAttr(path)}</code> にコミットしました`
           + (url ? `（<a href="${url}" target="_blank" rel="noopener">${(commit.sha || "").slice(0, 7) || "表示"}</a>）` : "")
           + `。<br>公開サイトは Vercel の再デプロイ後（数十秒）に反映されます。表示が変わらない時は<strong>ブラウザを再読み込み（強制更新）</strong>してください。`;
+        return true;
       } catch (err) {
         showMsg($("gh-msg-out"), "エラー", false);
         resultEl.innerHTML = `<span style="color:var(--danger)">${String(err.message || err)}</span>`;
+        return false;
       } finally {
         btn.disabled = false;
       }
