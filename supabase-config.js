@@ -1,17 +1,13 @@
 /*
  * supabase-config.js — Supabase 接続設定
  *
- * 下の url と anonKey を、ご自身の Supabase プロジェクトの値に置き換えてください。
- *   Supabase ダッシュボード → Project Settings → API
- *     - url     … "Project URL"（例: https://abcdxyz.supabase.co）
- *     - anonKey … "Project API keys" の anon public キー
+ * url     … Supabase の Project URL
+ * anonKey … anon public キー（公開してよいキー。書き込みは RLS とログインで保護）
  *
- * anon キーは「公開してよい」キーです（ブラウザに埋め込む前提）。
- * 書き込みは Row Level Security とログイン認証で保護します（SUPABASE-SETUP.md 参照）。
- *
- * 未設定（空のまま）の場合は、サイトは data.js を使って従来どおり動作します。
+ * 値の取得元: Supabase ダッシュボード → Project Settings → API
+ * 未設定（空）の場合は、サイトは data.js を使って従来どおり動作します。
  */
 window.SUPABASE_CONFIG = {
-  url: "",
-  anonKey: ""
+  url: "https://ppqdkdzdeglrtawcikgr.supabase.co",
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwcWRrZHpkZWdscnRhd2Npa2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3MTg2MzcsImV4cCI6MjA5NjI5NDYzN30.JLetdBZYdGnJk3qGJsWVvGyJlU5mcpxMCC7gdMyFbV4"
 };
