@@ -137,22 +137,21 @@ npm run start
 
 ## 本番DB（PostgreSQL）への切替方法
 
-1. `prisma/schema.prisma` の `datasource db` の `provider` を変更:
-   ```prisma
-   datasource db {
-     provider = "postgresql"   // "sqlite" から変更
-     url      = env("DATABASE_URL")
-   }
-   ```
-2. `.env` の `DATABASE_URL` を PostgreSQL の接続文字列に変更:
-   ```
-   DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/dhp_database?schema=public"
-   ```
-3. マイグレーションを適用し、初期データを投入:
-   ```bash
-   npm run prisma:deploy   # 本番向け（prisma migrate deploy）
-   npm run seed
-   ```
+provider は **環境変数 `DATABASE_PROVIDER` で自動切替** します（schema.prisma の手編集は不要）。
+ビルド／`db:push` の先頭で `scripts/use-db.mjs` が provider を書き換えます。
+
+- 未設定 / `sqlite` → SQLite（ローカル開発の既定）
+- `postgresql` → PostgreSQL（本番）
+
+本番（PostgreSQL）の初期化例:
+
+```bash
+export DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/dhp_database?schema=public"
+export DATABASE_PROVIDER="postgresql"
+
+npm run db:push   # スキーマを本番DBへ反映（PG/SQLite差異を気にせず初期化）
+npm run seed      # 初期管理者＋サンプル投入
+```
 
 > SQLite で作成済みのデータは自動移行されません。必要に応じて手動で移行してください。
 
@@ -168,10 +167,15 @@ npm run start          # 既定で 0.0.0.0:3000。PORT 環境変数で変更可
 ```
 プロセス管理には PM2 / systemd 等を利用してください。`AUTH_SECRET` と `DATABASE_URL` は本番値を環境変数で渡します。
 
-### Vercel 等
-- 環境変数 `DATABASE_URL`（PostgreSQL）・`AUTH_SECRET` を設定。
-- Build Command: `npm run build`（`prisma generate` を含む）。
-- SQLite はサーバーレス環境では永続化されないため、本番は PostgreSQL を使用してください。
+### Vercel
+**詳細な手順は [DEPLOY-VERCEL.md](./DEPLOY-VERCEL.md) を参照してください。** 要点:
+
+- **新規 Vercel プロジェクト**を作成し、**Root Directory を `dhp-database`** に設定
+  （既存の公開静的サイトとは別プロジェクトとして共存）。
+- 環境変数3つ: `DATABASE_URL`（PostgreSQL）・`AUTH_SECRET`・`DATABASE_PROVIDER=postgresql`。
+- Build Command は既定（`npm run build`）でOK。ビルド時に provider 切替＋`prisma generate` が走ります。
+- 初回のみ、本番DBへ `npm run db:push` ＋ `npm run seed` でテーブル作成と初期管理者投入。
+- SQLite はサーバーレス環境で永続化されないため、本番は必ず PostgreSQL を使用してください。
 
 ---
 
@@ -183,7 +187,8 @@ npm run start          # 既定で 0.0.0.0:3000。PORT 環境変数で変更可
 | `npm run build` | `prisma generate` ＋ 本番ビルド |
 | `npm run start` | 本番サーバー起動 |
 | `npm run prisma:migrate` | マイグレーション作成・適用（開発） |
-| `npm run prisma:deploy` | マイグレーション適用（本番） |
+| `npm run prisma:deploy` | マイグレーション適用（本番・SQLite） |
+| `npm run db:push` | スキーマをDBへ直接反映（本番PostgreSQL初期化向け） |
 | `npm run seed` | 初期データ投入 |
 
 ---
