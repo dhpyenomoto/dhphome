@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>dhp都市開発 | dhp Urban Development</title>
   <meta name="description" content="dhp都市開発の投資家・ディベロッパー向け案件情報。/ Project portfolio of dhp Urban Development for investors and developers." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Shippori+Mincho:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -55,6 +58,10 @@
     </div>
   </footer>
 
+  <!-- モーション強化ライブラリ（CDN・無くても表示は壊れない） -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
   <script src="supabase-config.js"></script>
   <script src="db.js"></script>
   <script src="data.js"></script>
@@ -148,6 +155,22 @@
       items.forEach((el) => el.classList.remove("in"));
       void hero.offsetWidth; // リフローでアニメーションを再起動
       items.forEach((el) => el.classList.add("in"));
+      animateStatNumbers();
+    }
+
+    // スタッツの数字をカウントアップ（GSAPがある時のみ・無ければ静的表示のまま）
+    function animateStatNumbers() {
+      if (!window.gsap) return;
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      document.querySelectorAll(".stat-num").forEach((el) => {
+        const target = parseInt(el.textContent, 10);
+        if (!isFinite(target)) return;
+        const o = { v: 0 };
+        gsap.to(o, {
+          v: target, duration: 1.8, delay: 1.1, ease: "power3.out",
+          onUpdate: () => { el.textContent = Math.round(o.v); }
+        });
+      });
     }
 
     // ===== ヒーローの数値（ポートフォリオ規模）=====
@@ -299,6 +322,42 @@
       }, 7500);
     }
 
+    // ===== 上質スクロール＆パララックス（Lenis / GSAP。CDN不達時は自動スキップ）=====
+    function initEnhancedMotion() {
+      const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reduce) return;
+
+      // Lenis: 慣性スクロール（サイト全体の手触り）
+      if (window.Lenis) {
+        document.documentElement.style.scrollBehavior = "auto"; // CSS smoothと競合回避
+        const lenis = new Lenis({ duration: 1.15, smoothWheel: true });
+        window.__lenis = lenis;
+        const raf = (time) => { lenis.raf(time); requestAnimationFrame(raf); };
+        requestAnimationFrame(raf);
+        if (window.ScrollTrigger) lenis.on("scroll", ScrollTrigger.update);
+        // ページ内アンカーもLenisで滑らかに
+        document.querySelectorAll('a[href^="#"]').forEach((a) => {
+          a.addEventListener("click", (e) => {
+            const target = document.querySelector(a.getAttribute("href"));
+            if (target) { e.preventDefault(); lenis.scrollTo(target, { offset: -70 }); }
+          });
+        });
+      }
+
+      // GSAP: ヒーローのパララックス（背景はゆっくり残り、文字は先に抜ける）
+      if (window.gsap && window.ScrollTrigger) {
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.to(".hero-slides", {
+          yPercent: 16, ease: "none",
+          scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: true }
+        });
+        gsap.to(".hero-inner", {
+          y: -70, opacity: 0, ease: "none",
+          scrollTrigger: { trigger: ".hero", start: "top top", end: "70% top", scrub: true }
+        });
+      }
+    }
+
     // ===== 初期化 =====
     document.documentElement.classList.add("has-js");
     document.querySelectorAll(".lang-toggle button").forEach((b) => {
@@ -307,6 +366,7 @@
     document.getElementById("year").textContent = new Date().getFullYear();
     initScrollHeader();
     initHeroSlides();
+    initEnhancedMotion();
 
     // データ読み込み：Supabase が設定されていれば DB から、無ければ data.js を使用
     async function boot() {

@@ -150,7 +150,13 @@ const SITE_DATA = {
    本 CLAUDE.md も改訂すること。
 3. `admin.html` が書き出す `data.js` は、`index.html` / `project.html` がそのまま
    読める形式を厳守すること（書き出し → 再読込で内容が一致すること）。
-4. 外部ライブラリ・ビルド手順は導入しない（素の HTML/CSS/JS を維持）。
+4. **ビルド手順は導入しない**（npm/bundler不要、ファイルを開くだけで動く構成を維持）。
+   外部リソースは **CDNの `<link>`/`<script>` タグのみ可**。現在の採用:
+   - Google Fonts（Cormorant Garamond / Shippori Mincho — 見出しのセリフ体）
+   - GSAP + ScrollTrigger（パララックス・数値カウント等）
+   - Lenis（慣性スクロール）
+   いずれも **CDN不達時に表示が壊れない**こと（`window.gsap` 等の存在チェックで
+   スキップし、CSSのみで成立するフォールバックを維持する）。
 5. 変更後は必ず **(a) 日本語表示 (b) 英語表示 (c) カテゴリーフィルター
    (d) 詳細ページ（写真・ストーリー・資料ダウンロード）
    (e) admin での追加 → data.js 書き出しが index.html / project.html で読める**
