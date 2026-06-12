@@ -68,9 +68,31 @@
       "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(
         '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400">' +
         '<rect width="100%" height="100%" fill="#10131a"/>' +
-        '<text x="50%" y="50%" fill="#59616d" font-family="sans-serif" font-size="20" ' +
+        '<text x="50%" y="50%" fill="#59616d" font-family="serif" font-size="20" ' +
         'letter-spacing="2" text-anchor="middle" dominant-baseline="middle">dhp Urban Development</text></svg>'
       );
+
+    // 写真未設定の案件に上質なフォールバック画像をIDで安定割り当て（データは不変）
+    const FALLBACK_IMAGES = [
+      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2000&q=80",
+      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2000&q=80",
+      "https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=2000&q=80",
+      "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=2000&q=80",
+      "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=2000&q=80",
+      "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=2000&q=80",
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2000&q=80",
+      "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=2000&q=80",
+      "https://images.unsplash.com/photo-1445019980597-93fa8acb246c?auto=format&fit=crop&w=2000&q=80",
+      "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=2000&q=80",
+      "https://images.unsplash.com/photo-1602002418816-5c0aeef426aa?auto=format&fit=crop&w=2000&q=80",
+      "https://images.unsplash.com/photo-1610641818989-c2051b5e2cfd?auto=format&fit=crop&w=2000&q=80"
+    ];
+    function hashStr(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
+    function pickImage(p) {
+      if (p.image) return p.image;
+      if (p.gallery && p.gallery[0]) return p.gallery[0];
+      return FALLBACK_IMAGES[hashStr(p.id || "x") % FALLBACK_IMAGES.length];
+    }
 
     let currentLang = localStorage.getItem("dhp-lang") || "ja";
     const t = (k) => (UI_TEXT[k] ? UI_TEXT[k][currentLang] : k);
@@ -115,7 +137,7 @@
       }
 
       const cat = catById(p.category);
-      const hero = p.image || (p.gallery && p.gallery[0]) || PLACEHOLDER_IMG;
+      const hero = pickImage(p);
       const name = p.name[currentLang] || p.name.ja || "";
       document.title = name + " | dhp都市開発";
 
