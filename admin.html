@@ -1191,6 +1191,13 @@ if (typeof window !== "undefined") {
       } finally { btn.disabled = false; }
     });
 
+    // セッション失効（db.jsが401を検知して自動ログアウト）→ 再ログインを促す
+    window.addEventListener("db-session-expired", () => {
+      refreshDbPanel();
+      showMsg($("db-msg"), "セッションの有効期限が切れました。再ログインしてください。", false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
     // ===== 初期化 =====
     fillCategorySelect();
     renderRows();

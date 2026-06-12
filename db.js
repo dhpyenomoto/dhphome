@@ -4,8 +4,13 @@
  * 公開ページ: window.DB.fetchProjects() で案件一覧を取得（未設定/失敗時は data.js を使用）
  * 管理画面:   login / logout / upsertProject / deleteProject / upsertMany でCRUD
  *
- * data 構造: projects テーブルの各行 = { id, sort_order, category, data(jsonb), updated_at }
- *   data には CLAUDE.md と同じ案件オブジェクト（name/location/... gallery/documents）を丸ごと格納。
+ * セッション管理:
+ *  - access_token は約1時間で失効するため、refresh_token も保存し、
+ *    書き込みが 401 になったら自動でリフレッシュして1回だけ再試行します。
+ *  - リフレッシュも失敗した場合は自動ログアウトし、"db-session-expired"
+ *    イベントを発火（管理画面が再ログインを促します）。
+ *  - 読み取り（fetchProjects）は常に anon キーで行うため、
+ *    トークン失効の影響を受けません（公開データのため）。
  */
 (function () {
   const cfg = window.SUPABASE_CONFIG || {};
@@ -16,23 +21,82 @@
 
   function configured() { return !!(BASE && ANON); }
 
-  function getToken() {
-    return sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY) || "";
+  // ===== トークン保存（access + refresh をJSONで保持。旧形式=文字列も読める）=====
+  function readStore() {
+    const raw = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
+    if (!raw) return null;
+    try { const o = JSON.parse(raw); return (o && o.access_token) ? o : null; }
+    catch (e) { return { access_token: raw, refresh_token: "" }; } // 旧形式
   }
-  function loggedIn() { return !!getToken(); }
+  function whichStorage() {
+    if (localStorage.getItem(TOKEN_KEY)) return localStorage;
+    if (sessionStorage.getItem(TOKEN_KEY)) return sessionStorage;
+    return null;
+  }
+  function writeStore(tokens, storage) {
+    (storage || sessionStorage).setItem(TOKEN_KEY, JSON.stringify({
+      access_token: tokens.access_token || "",
+      refresh_token: tokens.refresh_token || ""
+    }));
+  }
+  function clearStore() {
+    sessionStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(TOKEN_KEY);
+  }
 
-  function headers(extra) {
-    const tok = getToken();
+  function loggedIn() { const t = readStore(); return !!(t && t.access_token); }
+
+  function anonHeaders(extra) {
+    return Object.assign({ "apikey": ANON, "Authorization": "Bearer " + ANON }, extra || {});
+  }
+  function authHeaders(extra) {
+    const t = readStore();
     return Object.assign({
       "apikey": ANON,
-      "Authorization": "Bearer " + (tok || ANON)
+      "Authorization": "Bearer " + ((t && t.access_token) || ANON)
     }, extra || {});
   }
 
-  // ===== 公開ページ用：案件取得 =====
+  function sessionExpired() {
+    clearStore();
+    try { window.dispatchEvent(new CustomEvent("db-session-expired")); } catch (e) {}
+  }
+
+  // ===== セッションのリフレッシュ（401時に自動実行）=====
+  async function refreshSession() {
+    const t = readStore();
+    if (!t || !t.refresh_token) return false;
+    try {
+      const res = await fetch(`${BASE}/auth/v1/token?grant_type=refresh_token`, {
+        method: "POST",
+        headers: { "apikey": ANON, "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: t.refresh_token })
+      });
+      const j = await res.json();
+      if (!res.ok || !j.access_token) return false;
+      writeStore(j, whichStorage());
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // 認証付きfetch：401なら自動リフレッシュ→1回だけ再試行。それでも401なら自動ログアウト。
+  async function authFetch(url, makeOpts) {
+    let res = await fetch(url, makeOpts(authHeaders.bind(null)));
+    if (res.status === 401) {
+      const ok = await refreshSession();
+      if (ok) res = await fetch(url, makeOpts(authHeaders.bind(null)));
+    }
+    if (res.status === 401) {
+      sessionExpired();
+      throw new Error("セッションの有効期限が切れました。再ログインしてください。");
+    }
+    return res;
+  }
+
+  // ===== 公開ページ用：案件取得（常にanonキー＝トークン失効の影響なし）=====
   async function fetchProjects() {
     if (!configured()) throw new Error("Supabase 未設定");
-    const res = await fetch(`${BASE}/rest/v1/${TABLE}?select=data&order=sort_order.asc`, { headers: headers() });
+    const res = await fetch(`${BASE}/rest/v1/${TABLE}?select=data&order=sort_order.asc`, { headers: anonHeaders() });
     if (!res.ok) throw new Error("DB読込失敗: " + res.status);
     const rows = await res.json();
     return rows.map((r) => r.data).filter(Boolean);
@@ -50,16 +114,11 @@
     if (!res.ok || !j.access_token) {
       throw new Error(j.error_description || j.msg || j.error || ("ログイン失敗 " + res.status));
     }
-    // remember: localStorage（端末に保持） / それ以外: sessionStorage（タブを閉じると消去）
-    sessionStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(TOKEN_KEY);
-    (remember ? localStorage : sessionStorage).setItem(TOKEN_KEY, j.access_token);
+    clearStore();
+    writeStore(j, remember ? localStorage : sessionStorage);
     return j;
   }
-  function logout() {
-    sessionStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(TOKEN_KEY);
-  }
+  function logout() { clearStore(); }
 
   function rowOf(proj, order) {
     return {
@@ -71,36 +130,37 @@
     };
   }
 
-  // ===== 書き込み（要ログイン）=====
+  // ===== 書き込み（要ログイン・401自動リカバリ付き）=====
   async function upsertProject(proj, order) {
-    const res = await fetch(`${BASE}/rest/v1/${TABLE}?on_conflict=id`, {
+    const res = await authFetch(`${BASE}/rest/v1/${TABLE}?on_conflict=id`, (h) => ({
       method: "POST",
-      headers: headers({ "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates,return=minimal" }),
+      headers: h({ "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates,return=minimal" }),
       body: JSON.stringify(rowOf(proj, order))
-    });
+    }));
     if (!res.ok) throw new Error("保存失敗: " + res.status + " " + (await res.text()));
   }
 
   async function upsertMany(projects) {
     const rows = projects.map((p, i) => rowOf(p, i + 1));
-    const res = await fetch(`${BASE}/rest/v1/${TABLE}?on_conflict=id`, {
+    const res = await authFetch(`${BASE}/rest/v1/${TABLE}?on_conflict=id`, (h) => ({
       method: "POST",
-      headers: headers({ "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates,return=minimal" }),
+      headers: h({ "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates,return=minimal" }),
       body: JSON.stringify(rows)
-    });
+    }));
     if (!res.ok) throw new Error("一括保存失敗: " + res.status + " " + (await res.text()));
   }
 
   async function deleteProject(id) {
-    const res = await fetch(`${BASE}/rest/v1/${TABLE}?id=eq.${encodeURIComponent(id)}`, {
+    const res = await authFetch(`${BASE}/rest/v1/${TABLE}?id=eq.${encodeURIComponent(id)}`, (h) => ({
       method: "DELETE",
-      headers: headers({ "Prefer": "return=minimal" })
-    });
+      headers: h({ "Prefer": "return=minimal" })
+    }));
     if (!res.ok) throw new Error("削除失敗: " + res.status);
   }
 
   window.DB = {
     configured, loggedIn, login, logout,
-    fetchProjects, upsertProject, upsertMany, deleteProject
+    fetchProjects, upsertProject, upsertMany, deleteProject,
+    refreshSession
   };
 })();
