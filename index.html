@@ -312,11 +312,19 @@
     }
 
     // ===== ヒーローの写真スライドショー（クロスフェード + ズーム）=====
+    // ホテル・リゾート・ラグジュアリーレジデンスの大判イメージを多数循環
     const HERO_IMAGES = [
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2200&q=80", // ホテル開発
-      "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=2200&q=80",     // 都市再生
-      "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=2200&q=80",  // 収益不動産
-      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2200&q=80"   // リゾート
+      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2400&q=80", // ラグジュアリーホテル
+      "https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=2400&q=80", // リゾートプール
+      "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=2400&q=80", // ラグジュアリー内観
+      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2400&q=80", // リゾートヴィラ
+      "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=2400&q=80",    // モダンレジデンス
+      "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=2400&q=80",     // 都市・夕景
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2400&q=80",  // ビーチリゾート
+      "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=2400&q=80",  // スイートルーム
+      "https://images.unsplash.com/photo-1445019980597-93fa8acb246c?auto=format&fit=crop&w=2400&q=80",  // ホテルロビー
+      "https://images.unsplash.com/photo-1602002418816-5c0aeef426aa?auto=format&fit=crop&w=2400&q=80",  // 高級邸宅
+      "https://images.unsplash.com/photo-1610641818989-c2051b5e2cfd?auto=format&fit=crop&w=2400&q=80"   // リビング
     ];
     function initHeroSlides() {
       const wrap = document.getElementById("heroSlides");
@@ -345,7 +353,7 @@
         }
         cur = next;
         slides[cur].classList.add("active");
-      }, 7500);
+      }, 6000);
     }
 
     // ===== 上質スクロール＆パララックス（Lenis / GSAP。CDN不達時は自動スキップ）=====

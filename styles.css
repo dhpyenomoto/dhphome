@@ -132,8 +132,12 @@ html.lenis, html.lenis body { height: auto; }
   transition: opacity 1.8s var(--ease);
   will-change: opacity, transform;
 }
-.hero-slide.active { opacity: 1; animation: kenburns 7s ease-out forwards; }
-@keyframes kenburns { from { transform: scale(1.04); } to { transform: scale(1.13); } }
+.hero-slide.active { opacity: 1; animation: kenburns 8s ease-out forwards; }
+.hero-slide:nth-child(even).active { animation-name: kenburns2; }
+.hero-slide:nth-child(3n).active { animation-name: kenburns3; }
+@keyframes kenburns  { from { transform: scale(1.05) translate(0, 0); }      to { transform: scale(1.18) translate(-2.2%, -1.6%); } }
+@keyframes kenburns2 { from { transform: scale(1.05) translate(0, 0); }      to { transform: scale(1.18) translate(2.2%, 1.4%); } }
+@keyframes kenburns3 { from { transform: scale(1.06) translate(0, 1.5%); }   to { transform: scale(1.2)  translate(0, -1.8%); } }
 .hero-overlay {
   position: absolute; inset: 0;
   background:
@@ -208,14 +212,14 @@ html.lenis, html.lenis body { height: auto; }
   34%, 100% { background-position: -65% 0; }
 }
 
-/* ---- Eyebrow / stats（静かなフェードアップ）---- */
+/* ---- Eyebrow / stats（フェードアップ → そのまま継続フロート）---- */
 .has-js .hero .eyebrow,
 .has-js .hero-stats { opacity: 0; }
-.has-js .hero .eyebrow.in,
-.has-js .hero-stats.in { animation: heroRise 1.6s var(--ease) both; }
-.has-js .hero .eyebrow.in { animation-delay: 0.15s; }
-.has-js .hero-stats.in { animation-delay: 1.6s; }
+.has-js .hero .eyebrow.in { animation: heroRise 1.6s var(--ease) both, floatA 7s ease-in-out infinite; animation-delay: 0.15s, 2s; }
+.has-js .hero-stats.in { animation: heroRise 1.6s var(--ease) both, floatB 9s ease-in-out infinite; animation-delay: 1.6s, 3.4s; }
 @keyframes heroRise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+@keyframes floatA { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+@keyframes floatB { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
 
 /* ---- Lead（タイトル下の文）— 語句ごとに上品にせり上がり、その後さざ波のように流れ続ける ---- */
 .hero-lead .word { display: inline; }
@@ -236,17 +240,32 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 /* ---- 常時ゆっくり浮遊（入場後・親要素に適用して子のリビールと合成）---- */
-.has-js .hero h1 { animation: floatTitle 11s ease-in-out 3s infinite; }
-@keyframes floatTitle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+.has-js .hero h1 { animation: floatTitle 10s ease-in-out 2.4s infinite, titleGlow 6s ease-in-out 2.4s infinite; }
+@keyframes floatTitle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-13px); } }
+/* 見出しを上品に発光させて浮き上がらせる（金のグロー） */
+@keyframes titleGlow {
+  0%, 100% { filter: drop-shadow(0 6px 18px rgba(0,0,0,0.35)) drop-shadow(0 0 0 rgba(203,176,127,0)); }
+  50%      { filter: drop-shadow(0 12px 30px rgba(0,0,0,0.45)) drop-shadow(0 0 22px rgba(203,176,127,0.35)); }
+}
+/* リード文も全体をゆっくり浮遊（語句のさざ波と合成）---- */
+.has-js .hero-lead { animation: floatLead 8.5s ease-in-out 3.2s infinite; }
+@keyframes floatLead { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 
 .hero-stats .stat { opacity: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .has-js .hero h1,
   .has-js .hero h1 .line-inner,
+  .has-js .hero h1 .line.in .line-inner,
   .has-js .hero .eyebrow,
+  .has-js .hero .eyebrow.in,
   .has-js .hero-lead,
   .has-js .hero-lead .word-inner,
-  .has-js .hero-stats { transform: none; opacity: 1; filter: none; animation: none; }
+  .has-js .hero-lead.in .word-inner,
+  .has-js .hero-stats,
+  .has-js .hero-stats.in,
+  .hero-slide.active {
+    transform: none !important; opacity: 1 !important; filter: none !important; animation: none !important;
+  }
   .has-js .hero h1 .line-inner {
     background-image: none;
     -webkit-text-fill-color: var(--text);
