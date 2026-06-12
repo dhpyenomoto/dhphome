@@ -170,7 +170,12 @@
     }));
     if (!res.ok) {
       const t = await res.text();
-      if (res.status === 404) throw new Error("ストレージ未設定: Supabaseで公開バケット 'images' を作成してください（SUPABASE-SETUP.md）");
+      if (res.status === 404 || /bucket not found/i.test(t) || /"statusCode"\s*:\s*"?404/.test(t)) {
+        throw new Error("ストレージ未設定: Supabase の SQL Editor で supabase-storage.sql を実行し、公開バケット 'images' を作成してください（SUPABASE-SETUP.md 参照）。");
+      }
+      if (res.status === 403 || /row-level security|violates/i.test(t)) {
+        throw new Error("アップロード権限がありません: supabase-storage.sql の書き込みポリシーを実行し、ログインし直してください。");
+      }
       throw new Error("画像アップロード失敗: " + res.status + " " + t);
     }
     return `${BASE}/storage/v1/object/public/${BUCKET}/${enc}`;
