@@ -158,9 +158,27 @@
     if (!res.ok) throw new Error("削除失敗: " + res.status);
   }
 
+  // ===== Supabase Storage への画像アップロード（要ログイン）=====
+  // bucket "images"（公開）に保存し、公開URLを返す。トークン(PAT)不要。
+  const BUCKET = "images";
+  async function uploadImage(fileOrBlob, path) {
+    const enc = path.split("/").map(encodeURIComponent).join("/");
+    const res = await authFetch(`${BASE}/storage/v1/object/${BUCKET}/${enc}`, (h) => ({
+      method: "POST",
+      headers: h({ "Content-Type": (fileOrBlob.type || "image/jpeg"), "x-upsert": "true" }),
+      body: fileOrBlob
+    }));
+    if (!res.ok) {
+      const t = await res.text();
+      if (res.status === 404) throw new Error("ストレージ未設定: Supabaseで公開バケット 'images' を作成してください（SUPABASE-SETUP.md）");
+      throw new Error("画像アップロード失敗: " + res.status + " " + t);
+    }
+    return `${BASE}/storage/v1/object/public/${BUCKET}/${enc}`;
+  }
+
   window.DB = {
     configured, loggedIn, login, logout,
     fetchProjects, upsertProject, upsertMany, deleteProject,
-    refreshSession
+    uploadImage, refreshSession
   };
 })();

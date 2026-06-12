@@ -183,8 +183,15 @@
         </div>
 
         <div class="field">
-          <label for="f-image">画像URL / パス（実写真。空ならプレースホルダー）</label>
-          <input id="f-image" placeholder="https://... または images/foo.jpg" />
+          <label for="f-image">カバー写真（一覧カードのメイン写真）</label>
+          <input id="f-image" placeholder="アップロード、または 画像URL / Dropbox / images/foo.jpg" />
+          <div class="btn-row" style="margin-top:8px;align-items:center">
+            <input type="file" id="cover-file" accept="image/*" hidden />
+            <button type="button" class="btn btn-ghost" id="cover-pick">カバー写真をアップロード</button>
+            <img id="cover-preview" alt="" style="display:none;width:72px;height:48px;object-fit:cover;border-radius:4px;border:1px solid var(--border)" />
+            <span class="msg" id="cover-msg"></span>
+          </div>
+          <p class="hint" style="margin:6px 0 0">端末/iPadの写真を選ぶと、ログイン中はそのまま保存先（Supabase）にアップロードしてURLを設定します。</p>
         </div>
 
         <p class="legend">名称 / Name</p>
@@ -513,20 +520,27 @@
       return base;
     }
 
-    async function uploadImageFile(file) {
+    // 画像を1枚アップロードしてURL（またはパス）を返す。
+    // DBモード=Supabase Storage（トークン不要）／それ以外=GitHub Contents API（PAT）。
+    async function uploadOneImage(file, resizeOn) {
+      const resized = await resizeImage(file, resizeOn ? 2000 : 0);
+      const isJpeg = resized !== file;
+      const ext = isJpeg ? "jpg" : ((file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg");
+      const pid = ($("f-id").value.trim() || "img");
+      const fname = `${pid}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}-${safeName(file.name)}.${ext}`;
+
+      // DBモード: Supabase Storage に直接アップロード → 公開URLを返す
+      if (typeof dbMode === "function" && dbMode()) {
+        return await DB.uploadImage(resized, `${pid}/${fname}`);
+      }
+
+      // フォールバック: GitHub Contents API（PAT使用）
       const repoInfo = ghParseRepo($("gh-repo").value);
       const branch = $("gh-branch").value.trim() || DEFAULT_BRANCH;
       const token = $("gh-token").value.trim();
-      if (!repoInfo) throw new Error("「GitHub に保存」のリポジトリ（owner/repo）を入力してください。");
-      if (!token) throw new Error("「GitHub に保存」のアクセストークン（PAT）を入力してください。");
-
-      const resized = await resizeImage(file, $("g-resize").checked ? 2000 : 0);
-      const isJpeg = resized !== file; // 縮小した場合は JPEG
-      const ext = isJpeg ? "jpg" : (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
-      const pid = ($("f-id").value.trim() || "img");
-      const fname = `${pid}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}-${safeName(file.name)}.${ext}`;
-      const path = `images/${fname}`;
-
+      if (!repoInfo || !token) {
+        throw new Error("写真を保存するには、上部の「データベース」でログインするか、「GitHub に保存」でトークンを設定してください。");
+      }
       const b64 = await blobToBase64(resized);
       const apiUrl = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/contents/${encodeURIComponent("images")}/${encodeURIComponent(fname)}`;
       const res = await fetch(apiUrl, {
@@ -537,18 +551,12 @@
           "X-GitHub-Api-Version": "2022-11-28",
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ message: `Add image ${path} via admin`, content: b64, branch })
+        body: JSON.stringify({ message: `Add image images/${fname} via admin`, content: b64, branch })
       });
       const json = await res.json();
       if (!res.ok) throw new Error(`${file.name}: アップロード失敗（${res.status}）${json.message || ""}`);
-
-      // 直後プレビュー用に dataURL を保持
-      try {
-        galleryPreview[path] = "data:" + (isJpeg ? "image/jpeg" : file.type) + ";base64," + b64;
-      } catch (e) {}
-      formGallery.push(path);
-      renderGallery();
-      return path;
+      try { galleryPreview["images/" + fname] = "data:image/jpeg;base64," + b64; } catch (e) {}
+      return "images/" + fname;
     }
 
     async function handleFiles(fileList) {
@@ -559,7 +567,7 @@
       let done = 0;
       for (const f of files) {
         showMsg($("g-upmsg"), `アップロード中… (${done + 1}/${files.length}) ${f.name}`, true);
-        try { await uploadImageFile(f); done++; }
+        try { const url = await uploadOneImage(f, $("g-resize").checked); formGallery.push(url); renderGallery(); done++; }
         catch (err) { showMsg($("g-upmsg"), String(err.message || err), false); btn.disabled = false; return; }
       }
       btn.disabled = false;
@@ -568,6 +576,24 @@
 
     $("g-pick").addEventListener("click", () => $("g-file").click());
     $("g-file").addEventListener("change", (e) => { handleFiles(e.target.files); e.target.value = ""; });
+
+    // カバー写真のアップロード（f-image に設定）
+    $("cover-pick").addEventListener("click", () => $("cover-file").click());
+    $("cover-file").addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      const btn = $("cover-pick"); btn.disabled = true;
+      showMsg($("cover-msg"), "アップロード中…", true);
+      try {
+        const url = await uploadOneImage(file, true);
+        $("f-image").value = url;
+        const pv = $("cover-preview"); pv.src = url; pv.style.display = "";
+        showMsg($("cover-msg"), "カバー写真を設定しました。「保存して公開」で確定してください。", true);
+      } catch (err) {
+        showMsg($("cover-msg"), String(err.message || err), false);
+      } finally { btn.disabled = false; }
+    });
 
     // ドラッグ＆ドロップ
     const dz = $("g-drop");
@@ -649,6 +675,10 @@
       $("f-id").value = p.id;
       $("f-category").value = p.category;
       $("f-image").value = p.image || "";
+      (function () {
+        const pv = $("cover-preview");
+        if (p.image) { pv.src = p.image; pv.style.display = ""; } else { pv.style.display = "none"; pv.removeAttribute("src"); }
+      })();
       $("f-name-ja").value = p.name.ja || "";       $("f-name-en").value = p.name.en || "";
       $("f-location-ja").value = p.location.ja || ""; $("f-location-en").value = p.location.en || "";
       $("f-summary-ja").value = p.summary.ja || "";   $("f-summary-en").value = p.summary.en || "";
@@ -684,6 +714,7 @@
       $("formPanel").classList.remove("editing");
       $("f-id").disabled = false;
       $("f-id").value = suggestNextId(); // 新規追加時は次番号を自動入力（変更可）
+      const pv = $("cover-preview"); if (pv) { pv.style.display = "none"; pv.removeAttribute("src"); }
       formGallery = [];
       formDocuments = [];
       renderGallery();
